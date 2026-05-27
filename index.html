@@ -118,6 +118,32 @@
             transform: translateY(0);
         }
 
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.7);
+            color: #333;
+            border: 2px solid transparent;
+            padding: 10px 16px;
+            font-size: 1em;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: #333;
+            color: white;
+            border-color: white;
+        }
+
         /* 調整玩家區塊的順序，使其在控制按鈕之後 */
         .player-section.player1 {
             order: 2;
@@ -182,6 +208,13 @@
         .card.matched {
             animation: matchedAnimation 0.6s;
             pointer-events: none;
+        }
+
+        .card.attack-selectable {
+            outline: 4px solid #ff3b30;
+            outline-offset: 3px;
+            cursor: crosshair;
+            pointer-events: auto;
         }
 
         @keyframes matchedAnimation {
@@ -281,6 +314,37 @@
             color: #666;
             margin-top: 3px;
         }
+
+        .card-category {
+            margin-top: 5px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.78em;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .category-bonus {
+            background: #f39c12;
+        }
+
+        .category-attack {
+            background: #e74c3c;
+        }
+
+        .category-defense {
+            background: #3498db;
+        }
+
+        .category-shuffle {
+            background: #8e44ad;
+        }
+
+        .category-random {
+            background: #16a085;
+        }
+
 
         .matched .card-word,
         .matched .card-chinese {
@@ -511,8 +575,8 @@
 
         .sound-toggle {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            top: 12px;
+            right: 12px;
             background: white;
             border-radius: 50%;
             width: 60px;
@@ -524,7 +588,7 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             transition: all 0.3s;
-            z-index: 100;
+            z-index: 2000;
         }
 
         .sound-toggle:hover {
@@ -548,6 +612,72 @@
             z-index: 1500;
         }
 
+        .territory-panel {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .territory-panel.active {
+            display: block;
+        }
+
+        .territory-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .power-shop {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+
+        .power-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
+            background: #fafafa;
+        }
+
+        .power-card-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .power-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .power-btn {
+            border: none;
+            border-radius: 14px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #333;
+            color: white;
+        }
+
+        .power-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .player-territory,
+        .player-power-summary {
+            font-size: 1em;
+            color: rgba(255, 255, 255, 0.92);
+            margin-top: 5px;
+        }
+
         @keyframes slideInRight {
             from {
                 transform: translateX(100%) translateY(-50%);
@@ -566,9 +696,15 @@
             <div class="player-name">🎮 玩家 1</div>
             <div class="player-score" id="player1Score">0</div>
             <div class="player-pairs">配對: <span id="player1Pairs">0</span></div>
+            <div class="player-territory" id="player1Territory">土地: <span id="player1Land">0</span></div>
+            <div class="player-power-summary" id="player1Powers"></div>
         </div>
 
         <div class="game-controls">
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="classicModeBtn" onclick="setMode('classic')">經典模式</button>
+                <button class="mode-btn" id="territoryModeBtn" onclick="setMode('territory')">土地競爭</button>
+            </div>
             <button class="control-btn" onclick="startNewGame()">🎲 新遊戲</button>
             <button class="control-btn" onclick="showHelp()">❓ 說明</button>
         </div>
@@ -577,11 +713,18 @@
             <div class="player-name">🎯 玩家 2</div>
             <div class="player-score" id="player2Score">0</div>
             <div class="player-pairs">配對: <span id="player2Pairs">0</span></div>
+            <div class="player-territory" id="player2Territory">土地: <span id="player2Land">0</span></div>
+            <div class="player-power-summary" id="player2Powers"></div>
         </div>
     </div>
 
     <div class="turn-indicator" id="turnIndicator">
         🎮 玩家 1 的回合
+    </div>
+
+    <div class="territory-panel" id="territoryPanel">
+        <div class="territory-title" id="territoryPanelTitle">功能卡商店</div>
+        <div class="power-shop" id="powerShop"></div>
     </div>
 
     <div class="game-board" id="gameBoard"></div>
@@ -605,6 +748,10 @@
                 <p>🔊 翻牌時會朗讀英文單字</p>
                 <p>🔄 <strong>無論是否配對成功，都會換邊</strong></p>
                 <br>
+                <p><strong>模式：</strong></p>
+                <p>經典模式：照原本規則比分數。</p>
+                <p>土地競爭：配對後佔領土地，分數可購買功能卡，最後先比土地數。</p>
+                <br>
                 <p><strong>💰 計分方式：</strong></p>
                 <ul style="list-style-position: inside; padding-left: 10px; margin-top: 5px;">
                     <li>基本配對：10分</li>
@@ -612,7 +759,7 @@
                     <li>🎁 獎勵卡片：額外 +5分</li>
                 </ul>
                 <br>
-                <p>🏆 配對最多且分數最高者獲勝！</p>
+                <p>🏆 經典模式比分數；土地競爭模式先比土地數，平手再比分數。</p>
             </div>
 
             <button class="control-btn" onclick="closeHelpModal()">知道了</button>
@@ -629,12 +776,12 @@
                 <div class="final-player-score player1">
                     <h3>🎮 玩家 1</h3>
                     <p>分數: <span id="finalScore1">0</span></p>
-                    <p>配對: <span id="finalPairs1">0</span></p>
+                    <p><span id="finalMetricLabel1">配對</span>: <span id="finalPairs1">0</span></p>
                 </div>
                 <div class="final-player-score player2">
                     <h3>🎯 玩家 2</h3>
                     <p>分數: <span id="finalScore2">0</span></p>
-                    <p>配對: <span id="finalPairs2">0</span></p>
+                    <p><span id="finalMetricLabel2">配對</span>: <span id="finalPairs2">0</span></p>
                 </div>
             </div>
 
@@ -677,21 +824,85 @@
             { word: 'traffic light', emoji: '🚦', chinese: '紅綠燈' }
         ];
 
-        // 遊戲狀態
-        let gameState = {
-            cards: [],
-            flippedCards: [],
-            currentPlayer: 1,
-            player1Score: 0,
-            player2Score: 0,
-            player1Pairs: 0,
-            player2Pairs: 0,
-            totalPairs: 30,
-            soundEnabled: true,
-            goldenCards: new Set(),
-            bonusCards: new Set(),
-            gameActive: true
+        const powerTypes = {
+            bonus: {
+                label: '加分',
+                cost: 5,
+                className: 'category-bonus',
+                words: ['spaghetti', 'cookie', 'yogurt', 'sandwich', 'lemonade', 'bakery']
+            },
+            attack: {
+                label: '攻擊',
+                cost: 10,
+                className: 'category-attack',
+                words: ['scissors', 'eraser', 'flashlight', 'paintbrush', 'traffic light', 'police station']
+            },
+            defense: {
+                label: '防守',
+                cost: 8,
+                className: 'category-defense',
+                words: ['blanket', 'pillow', 'mirror', 'towel', 'notebook', 'library']
+            },
+            shuffle: {
+                label: '重組',
+                cost: 12,
+                className: 'category-shuffle',
+                words: ['cousin', 'puzzle', 'mountain', 'museum', 'castle', 'rocket']
+            },
+            random: {
+                label: '隨機',
+                cost: 8,
+                className: 'category-random',
+                words: ['backpack', 'crayons', 'hospital', 'subway', 'basket', 'ticket']
+            }
         };
+
+        const wordPowerType = {};
+        Object.keys(powerTypes).forEach(type => {
+            powerTypes[type].words.forEach(word => {
+                wordPowerType[word] = type;
+            });
+        });
+
+        let selectedMode = 'classic';
+
+        function createPowerInventory() {
+            return {
+                bonus: 0,
+                attack: 0,
+                defense: 0,
+                shuffle: 0,
+                random: 0
+            };
+        }
+
+        function createInitialGameState(mode = selectedMode, soundEnabled = true) {
+            return {
+                cards: [],
+                flippedCards: [],
+                currentPlayer: 1,
+                player1Score: 0,
+                player2Score: 0,
+                player1Pairs: 0,
+                player2Pairs: 0,
+                totalPairs: 30,
+                soundEnabled,
+                goldenCards: new Set(),
+                bonusCards: new Set(),
+                gameActive: true,
+                mode,
+                playerPowers: {
+                    1: createPowerInventory(),
+                    2: createPowerInventory()
+                },
+                turnPowerUsed: false,
+                extraTriggerUsed: false,
+                attackSelection: null
+            };
+        }
+
+        // 遊戲狀態
+        let gameState = createInitialGameState();
 
         // 初始化遊戲
         function initGame() {
@@ -721,6 +932,10 @@
         function setSpecialCards() {
             gameState.goldenCards.clear();
             gameState.bonusCards.clear();
+
+            if (gameState.mode === 'territory') {
+                return;
+            }
 
             // 隨機選擇5張金色卡片（加倍分數）
             const goldenCount = 5; // (改回 5)
@@ -772,8 +987,16 @@
                 cardDiv.classList.add('flipped', 'matched');
             }
 
+            if (isAttackTarget(index)) {
+                cardDiv.classList.add('attack-selectable');
+            }
+
             const isGolden = gameState.goldenCards.has(index);
             const isBonus = gameState.bonusCards.has(index);
+            const categoryType = wordPowerType[card.wordData.word];
+            const category = powerTypes[categoryType];
+            const categoryLabel = gameState.mode === 'territory' && category ?
+                `<div class="card-category ${category.className}">${category.label}</div>` : '';
 
             let matchedClass = '';
             if (card.matchedBy === 1) matchedClass = 'player1-matched';
@@ -787,6 +1010,7 @@
                     <div class="card-content">
                         <div class="card-emoji">${card.wordData.emoji}</div>
                         <div class="card-word">${card.wordData.word}</div>
+                        ${categoryLabel}
                         ${isGolden ? '<div style="margin-top: 5px; font-weight: bold; color: #b8860b;">⭐ x2</div>' : ''}
                         ${isBonus ? '<div style="margin-top: 5px; font-weight: bold; color: #4CAF50;">🎁 +5</div>' : ''}
                     </div>
@@ -800,6 +1024,11 @@
 
         // 處理卡片點擊
         function handleCardClick(index) {
+            if (gameState.attackSelection) {
+                handleAttackTarget(index);
+                return;
+            }
+
             if (!gameState.gameActive) return;
 
             const card = gameState.cards[index];
@@ -858,6 +1087,9 @@
 
             // 總是換邊
             gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+            gameState.turnPowerUsed = false;
+            gameState.extraTriggerUsed = false;
+            gameState.attackSelection = null;
             updateUI(); // 在這裡更新UI以反映新玩家
 
             setTimeout(() => {
@@ -957,6 +1189,218 @@
             }, 2000);
         }
 
+        function setMode(mode) {
+            selectedMode = mode;
+            startNewGame(mode);
+        }
+
+        function getScore(player = gameState.currentPlayer) {
+            return player === 1 ? gameState.player1Score : gameState.player2Score;
+        }
+
+        function setScore(player, value) {
+            if (player === 1) {
+                gameState.player1Score = value;
+            } else {
+                gameState.player2Score = value;
+            }
+        }
+
+        function getLandCount(player) {
+            return gameState.cards.filter(card => card.matchedBy === player).length;
+        }
+
+        function getPowerSummary(player) {
+            const powers = gameState.playerPowers[player];
+            return Object.keys(powerTypes)
+                .map(type => `${powerTypes[type].label} x${powers[type]}`)
+                .join(' / ');
+        }
+
+        function canUseTurnPower() {
+            return gameState.mode === 'territory' &&
+                gameState.gameActive &&
+                gameState.flippedCards.length === 0 &&
+                !gameState.turnPowerUsed &&
+                !gameState.attackSelection;
+        }
+
+        function hasOpponentLand(player = gameState.currentPlayer) {
+            const opponent = player === 1 ? 2 : 1;
+            return gameState.cards.some(card => card.matchedBy === opponent);
+        }
+
+        function renderPowerShop() {
+            const shop = document.getElementById('powerShop');
+            if (!shop) return;
+
+            if (gameState.mode !== 'territory') {
+                shop.innerHTML = '';
+                return;
+            }
+
+            const player = gameState.currentPlayer;
+            const powers = gameState.playerPowers[player];
+            shop.innerHTML = Object.keys(powerTypes).map(type => {
+                const power = powerTypes[type];
+                const canBuy = getScore(player) >= power.cost && gameState.flippedCards.length === 0 && !gameState.attackSelection;
+                const canUse = type !== 'defense' && powers[type] > 0 && canUseTurnPower();
+                const useLabel = type === 'defense' ? '被動' : '使用';
+                return `
+                    <div class="power-card">
+                        <div class="power-card-title">${power.label} x${powers[type]}</div>
+                        <div class="power-actions">
+                            <button class="power-btn" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>買 ${power.cost}</button>
+                            <button class="power-btn" onclick="usePower('${type}')" ${canUse ? '' : 'disabled'}>${useLabel}</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function buyPower(type) {
+            if (gameState.mode !== 'territory' || gameState.flippedCards.length > 0 || gameState.attackSelection) return;
+
+            const player = gameState.currentPlayer;
+            const power = powerTypes[type];
+            if (!power || getScore(player) < power.cost) return;
+
+            setScore(player, getScore(player) - power.cost);
+            gameState.playerPowers[player][type]++;
+            showPowerUp(`玩家 ${player} 購買 ${power.label} 卡`);
+            updateUI();
+        }
+
+        function usePower(type) {
+            if (gameState.mode !== 'territory') return;
+            if (type === 'defense') {
+                showPowerUp('防守卡會在被搶地時自動詢問是否使用');
+                return;
+            }
+            if (!canUseTurnPower()) return;
+
+            const player = gameState.currentPlayer;
+            if (gameState.playerPowers[player][type] <= 0) return;
+            if (type === 'attack' && !hasOpponentLand(player)) {
+                showPowerUp('目前沒有可搶佔的對方土地');
+                return;
+            }
+
+            gameState.playerPowers[player][type]--;
+            gameState.turnPowerUsed = true;
+            applyPowerEffect(type, player);
+            updateUI();
+        }
+
+        function applyPowerEffect(type, player) {
+            if (type === 'bonus') {
+                setScore(player, getScore(player) + 10);
+                showPowerUp(`玩家 ${player} 加分 +10`);
+                return;
+            }
+
+            if (type === 'defense') {
+                gameState.playerPowers[player].defense++;
+                showPowerUp(`玩家 ${player} 獲得防守卡`);
+                return;
+            }
+
+            if (type === 'shuffle') {
+                reshuffleUnmatchedCards();
+                showPowerUp('未佔領卡牌已重新打亂');
+                return;
+            }
+
+            if (type === 'random') {
+                const randomTypes = ['bonus', 'attack', 'defense', 'shuffle'];
+                const picked = randomTypes[Math.floor(Math.random() * randomTypes.length)];
+                showPowerUp(`隨機發動：${powerTypes[picked].label}`);
+                setTimeout(() => applyPowerEffect(picked, player), 350);
+                return;
+            }
+
+            if (type === 'attack') {
+                startAttackSelection(player);
+            }
+        }
+
+        function reshuffleUnmatchedCards() {
+            const targetIndexes = gameState.cards
+                .map((card, index) => card.matchedBy === null ? index : null)
+                .filter(index => index !== null);
+
+            const shuffledCards = shuffleArray(targetIndexes.map(index => gameState.cards[index]));
+            targetIndexes.forEach((index, slot) => {
+                gameState.cards[index] = shuffledCards[slot];
+            });
+
+            renderBoard();
+        }
+
+        function startAttackSelection(player) {
+            if (!hasOpponentLand(player)) {
+                showPowerUp('目前沒有可搶佔的對方土地');
+                return;
+            }
+
+            gameState.attackSelection = { attacker: player };
+            gameState.gameActive = false;
+            showPowerUp(`玩家 ${player} 選擇一格對方土地`);
+            renderBoard();
+        }
+
+        function isAttackTarget(index) {
+            if (!gameState.attackSelection) return false;
+            const card = gameState.cards[index];
+            const attacker = gameState.attackSelection.attacker;
+            const opponent = attacker === 1 ? 2 : 1;
+            return card && card.matchedBy === opponent;
+        }
+
+        function handleAttackTarget(index) {
+            if (!isAttackTarget(index)) {
+                showPowerUp('請選擇對方已佔領的土地');
+                return;
+            }
+
+            const attacker = gameState.attackSelection.attacker;
+            const defender = attacker === 1 ? 2 : 1;
+            const targetCard = gameState.cards[index];
+
+            if (gameState.playerPowers[defender].defense > 0) {
+                const shouldDefend = window.confirm(`玩家 ${defender} 要使用防守卡抵擋搶地嗎？`);
+                if (shouldDefend) {
+                    gameState.playerPowers[defender].defense--;
+                    gameState.attackSelection = null;
+                    gameState.gameActive = true;
+                    showPowerUp(`玩家 ${defender} 防守成功`);
+                    renderBoard();
+                    updateUI();
+                    return;
+                }
+            }
+
+            targetCard.matchedBy = attacker;
+            const stolenType = wordPowerType[targetCard.wordData.word];
+            gameState.attackSelection = null;
+            gameState.gameActive = true;
+            showPowerUp(`玩家 ${attacker} 搶佔成功`);
+            renderBoard();
+
+            if (!gameState.extraTriggerUsed && stolenType) {
+                gameState.extraTriggerUsed = true;
+                setTimeout(() => triggerStolenLandPower(stolenType, attacker), 350);
+            }
+
+            updateUI();
+        }
+
+        function triggerStolenLandPower(type, player) {
+            showPowerUp(`搶到${powerTypes[type].label}土地，觸發效果`);
+            applyPowerEffect(type, player);
+            updateUI();
+        }
+
         // 更新UI
         function updateUI() {
             // 更新分數
@@ -965,10 +1409,34 @@
             document.getElementById('player1Pairs').textContent = gameState.player1Pairs;
             document.getElementById('player2Pairs').textContent = gameState.player2Pairs;
 
+            const isTerritoryMode = gameState.mode === 'territory';
+            document.getElementById('player1Territory').style.display = isTerritoryMode ? 'block' : 'none';
+            document.getElementById('player2Territory').style.display = isTerritoryMode ? 'block' : 'none';
+            document.getElementById('player1Powers').style.display = isTerritoryMode ? 'block' : 'none';
+            document.getElementById('player2Powers').style.display = isTerritoryMode ? 'block' : 'none';
+            document.getElementById('territoryPanel').classList.toggle('active', isTerritoryMode);
+            document.getElementById('classicModeBtn').classList.toggle('active', gameState.mode === 'classic');
+            document.getElementById('territoryModeBtn').classList.toggle('active', isTerritoryMode);
+
+            if (isTerritoryMode) {
+                document.getElementById('player1Land').textContent = getLandCount(1);
+                document.getElementById('player2Land').textContent = getLandCount(2);
+                document.getElementById('player1Powers').textContent = getPowerSummary(1);
+                document.getElementById('player2Powers').textContent = getPowerSummary(2);
+                document.getElementById('territoryPanelTitle').textContent =
+                    `玩家 ${gameState.currentPlayer} 功能卡商店（尚未翻牌前可購買或使用）`;
+            }
+
+            renderPowerShop();
+
             // 更新回合指示
             const turnIndicator = document.getElementById('turnIndicator');
-            turnIndicator.textContent = gameState.currentPlayer === 1 ?
-                '🎮 玩家 1 的回合' : '🎯 玩家 2 的回合';
+            if (gameState.attackSelection) {
+                turnIndicator.textContent = `玩家 ${gameState.attackSelection.attacker} 選擇要搶佔的土地`;
+            } else {
+                turnIndicator.textContent = gameState.currentPlayer === 1 ?
+                    '🎮 玩家 1 的回合' : '🎯 玩家 2 的回合';
+            }
 
             // 更新玩家區域高亮
             const player1Section = document.getElementById('player1Section');
@@ -1003,18 +1471,32 @@
         function endGame() {
             // 決定勝者
             let winner = '平手！';
-            if (gameState.player1Score > gameState.player2Score) {
-                winner = '🎮 玩家 1 獲勝！';
-            } else if (gameState.player2Score > gameState.player1Score) {
-                winner = '🎯 玩家 2 獲勝！';
+            if (gameState.mode === 'territory') {
+                const player1Land = getLandCount(1);
+                const player2Land = getLandCount(2);
+                if (player1Land > player2Land ||
+                    (player1Land === player2Land && gameState.player1Score > gameState.player2Score)) {
+                    winner = '🎮 玩家 1 獲勝！';
+                } else if (player2Land > player1Land ||
+                    (player1Land === player2Land && gameState.player2Score > gameState.player1Score)) {
+                    winner = '🎯 玩家 2 獲勝！';
+                }
+            } else {
+                if (gameState.player1Score > gameState.player2Score) {
+                    winner = '🎮 玩家 1 獲勝！';
+                } else if (gameState.player2Score > gameState.player1Score) {
+                    winner = '🎯 玩家 2 獲勝！';
+                }
             }
 
             // 顯示結果
             document.getElementById('winnerAnnouncement').textContent = winner;
+            document.getElementById('finalMetricLabel1').textContent = gameState.mode === 'territory' ? '土地' : '配對';
+            document.getElementById('finalMetricLabel2').textContent = gameState.mode === 'territory' ? '土地' : '配對';
             document.getElementById('finalScore1').textContent = gameState.player1Score;
-            document.getElementById('finalPairs1').textContent = gameState.player1Pairs;
+            document.getElementById('finalPairs1').textContent = gameState.mode === 'territory' ? getLandCount(1) : gameState.player1Pairs;
             document.getElementById('finalScore2').textContent = gameState.player2Score;
-            document.getElementById('finalPairs2').textContent = gameState.player2Pairs;
+            document.getElementById('finalPairs2').textContent = gameState.mode === 'territory' ? getLandCount(2) : gameState.player2Pairs;
 
             document.getElementById('gameOverModal').style.display = 'flex';
         }
@@ -1026,21 +1508,9 @@
         }
 
         // 開始新遊戲
-        function startNewGame() {
-            gameState = {
-                cards: [],
-                flippedCards: [],
-                currentPlayer: 1,
-                player1Score: 0,
-                player2Score: 0,
-                player1Pairs: 0,
-                player2Pairs: 0,
-                totalPairs: 30,
-                soundEnabled: gameState.soundEnabled,
-                goldenCards: new Set(),
-                bonusCards: new Set(),
-                gameActive: true
-            };
+        function startNewGame(mode = selectedMode) {
+            selectedMode = mode;
+            gameState = createInitialGameState(mode, gameState.soundEnabled);
 
             initGame();
         }
