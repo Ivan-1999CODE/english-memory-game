@@ -645,6 +645,31 @@
             background: #fafafa;
         }
 
+        .power-card.category-bonus {
+            border-color: #f39c12;
+            background: #fff7e6;
+        }
+
+        .power-card.category-attack {
+            border-color: #e74c3c;
+            background: #fff0ee;
+        }
+
+        .power-card.category-defense {
+            border-color: #3498db;
+            background: #edf7ff;
+        }
+
+        .power-card.category-shuffle {
+            border-color: #8e44ad;
+            background: #f8efff;
+        }
+
+        .power-card.category-random {
+            border-color: #16a085;
+            background: #eafff9;
+        }
+
         .power-card-title {
             font-weight: bold;
             margin-bottom: 6px;
@@ -676,6 +701,17 @@
             font-size: 1em;
             color: rgba(255, 255, 255, 0.92);
             margin-top: 5px;
+        }
+
+        .power-chip {
+            display: inline-block;
+            color: white;
+            border-radius: 12px;
+            padding: 3px 8px;
+            margin: 2px 4px 2px 0;
+            font-size: 0.9em;
+            font-weight: bold;
+            white-space: nowrap;
         }
 
         @keyframes slideInRight {
@@ -826,31 +862,31 @@
 
         const powerTypes = {
             bonus: {
-                label: '加分',
+                label: 'Bonus',
                 cost: 5,
                 className: 'category-bonus',
                 words: ['spaghetti', 'cookie', 'yogurt', 'sandwich', 'lemonade', 'bakery']
             },
             attack: {
-                label: '攻擊',
+                label: 'Attack',
                 cost: 10,
                 className: 'category-attack',
                 words: ['scissors', 'eraser', 'flashlight', 'paintbrush', 'traffic light', 'police station']
             },
             defense: {
-                label: '防守',
+                label: 'Defense',
                 cost: 8,
                 className: 'category-defense',
                 words: ['blanket', 'pillow', 'mirror', 'towel', 'notebook', 'library']
             },
             shuffle: {
-                label: '重組',
+                label: 'Shuffle',
                 cost: 12,
                 className: 'category-shuffle',
                 words: ['cousin', 'puzzle', 'mountain', 'museum', 'castle', 'rocket']
             },
             random: {
-                label: '隨機',
+                label: 'Random',
                 cost: 8,
                 className: 'category-random',
                 words: ['backpack', 'crayons', 'hospital', 'subway', 'basket', 'ticket']
@@ -1225,8 +1261,11 @@
         function getPowerSummary(player) {
             const powers = gameState.playerPowers[player];
             return Object.keys(powerTypes)
-                .map(type => `${powerTypes[type].label} x${powers[type]}`)
-                .join(' / ');
+                .map(type => {
+                    const power = powerTypes[type];
+                    return `<span class="power-chip ${power.className}">${power.label} x${powers[type]}</span>`;
+                })
+                .join('');
         }
 
         function canUseTurnPower() {
@@ -1257,12 +1296,14 @@
                 const power = powerTypes[type];
                 const canBuy = getScore(player) >= power.cost && gameState.flippedCards.length === 0 && !gameState.attackSelection;
                 const canUse = type !== 'defense' && powers[type] > 0 && canUseTurnPower();
-                const useLabel = type === 'defense' ? '被動' : '使用';
+                const useLabel = type === 'defense' ? 'Passive' : 'Use';
                 return `
-                    <div class="power-card">
-                        <div class="power-card-title">${power.label} x${powers[type]}</div>
+                    <div class="power-card ${power.className}">
+                        <div class="power-card-title">
+                            <span class="power-chip ${power.className}">${power.label} x${powers[type]}</span>
+                        </div>
                         <div class="power-actions">
-                            <button class="power-btn" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>買 ${power.cost} 🪙</button>
+                            <button class="power-btn" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>Buy ${power.cost}</button>
                             <button class="power-btn" onclick="usePower('${type}')" ${canUse ? '' : 'disabled'}>${useLabel}</button>
                         </div>
                     </div>
@@ -1433,8 +1474,8 @@
             if (isTerritoryMode) {
                 document.getElementById('player1Land').textContent = getLandCount(1);
                 document.getElementById('player2Land').textContent = getLandCount(2);
-                document.getElementById('player1Powers').textContent = getPowerSummary(1);
-                document.getElementById('player2Powers').textContent = getPowerSummary(2);
+                document.getElementById('player1Powers').innerHTML = getPowerSummary(1);
+                document.getElementById('player2Powers').innerHTML = getPowerSummary(2);
                 document.getElementById('territoryPanelTitle').textContent =
                     `玩家 ${gameState.currentPlayer} 功能卡商店（尚未翻牌前可購買或使用）`;
             }
