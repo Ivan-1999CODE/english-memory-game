@@ -1137,6 +1137,10 @@
                 gameState.player2Pairs++;
             }
 
+            if (gameState.mode === 'territory') {
+                awardMatchedPower(card1.wordData.word, gameState.currentPlayer);
+            }
+
             // 動畫效果
             const cardElement1 = document.querySelector(`[data-index="${index1}"]`);
             const cardElement2 = document.querySelector(`[data-index="${index2}"]`);
@@ -1187,6 +1191,14 @@
             setTimeout(() => {
                 notification.style.display = 'none';
             }, 2000);
+        }
+
+        function awardMatchedPower(word, player) {
+            const type = wordPowerType[word];
+            if (!type) return;
+
+            gameState.playerPowers[player][type]++;
+            showPowerUp(`玩家 ${player} 獲得 ${powerTypes[type].label} 卡`);
         }
 
         function setMode(mode) {
@@ -1250,7 +1262,7 @@
                     <div class="power-card">
                         <div class="power-card-title">${power.label} x${powers[type]}</div>
                         <div class="power-actions">
-                            <button class="power-btn" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>買 ${power.cost}</button>
+                            <button class="power-btn" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>買 ${power.cost} 🪙</button>
                             <button class="power-btn" onclick="usePower('${type}')" ${canUse ? '' : 'disabled'}>${useLabel}</button>
                         </div>
                     </div>
