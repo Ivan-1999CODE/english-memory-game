@@ -863,30 +863,35 @@
         const powerTypes = {
             bonus: {
                 label: 'Bonus',
+                shopLabel: '加分',
                 cost: 5,
                 className: 'category-bonus',
                 words: ['spaghetti', 'cookie', 'yogurt', 'sandwich', 'lemonade', 'bakery']
             },
             attack: {
                 label: 'Attack',
+                shopLabel: '攻擊',
                 cost: 10,
                 className: 'category-attack',
                 words: ['scissors', 'eraser', 'flashlight', 'paintbrush', 'traffic light', 'police station']
             },
             defense: {
                 label: 'Defense',
+                shopLabel: '防守',
                 cost: 8,
                 className: 'category-defense',
                 words: ['blanket', 'pillow', 'mirror', 'towel', 'notebook', 'library']
             },
             shuffle: {
                 label: 'Shuffle',
+                shopLabel: '重組',
                 cost: 12,
                 className: 'category-shuffle',
                 words: ['cousin', 'puzzle', 'mountain', 'museum', 'castle', 'rocket']
             },
             random: {
                 label: 'Random',
+                shopLabel: '隨機',
                 cost: 8,
                 className: 'category-random',
                 words: ['backpack', 'crayons', 'hospital', 'subway', 'basket', 'ticket']
@@ -1263,7 +1268,7 @@
             return Object.keys(powerTypes)
                 .map(type => {
                     const power = powerTypes[type];
-                    return `<span class="power-chip ${power.className}">${power.label} x${powers[type]}</span>`;
+                    return `<span class="power-chip ${power.className}">${power.shopLabel} x${powers[type]}</span>`;
                 })
                 .join('');
         }
@@ -1300,7 +1305,7 @@
                 return `
                     <div class="power-card ${power.className}">
                         <div class="power-card-title">
-                            <span class="power-chip ${power.className}">${power.label} x${powers[type]}</span>
+                            <span class="power-chip ${power.className}">${power.shopLabel} x${powers[type]}</span>
                         </div>
                         <div class="power-actions">
                             <button class="power-btn" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>Buy ${power.cost}</button>
