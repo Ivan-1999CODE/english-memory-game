@@ -575,8 +575,8 @@
 
         .sound-toggle {
             position: fixed;
-            top: 12px;
-            right: 12px;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(12px, env(safe-area-inset-right));
             background: white;
             border-radius: 50%;
             width: 60px;
@@ -587,12 +587,12 @@
             font-size: 1.8em;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s;
-            z-index: 2000;
+            transition: box-shadow 0.3s, background-color 0.3s;
+            z-index: 9999;
         }
 
         .sound-toggle:hover {
-            transform: scale(1.1);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
         }
 
         .power-up-notification {
@@ -793,7 +793,7 @@
                 <button class="mode-btn active" id="classicModeBtn" onclick="setMode('classic')">經典模式</button>
                 <button class="mode-btn" id="territoryModeBtn" onclick="setMode('territory')">土地競爭</button>
             </div>
-            <button class="control-btn" onclick="startNewGame()">🎲 新遊戲</button>
+            <button class="control-btn" onclick="confirmNewGame()">🎲 新遊戲</button>
             <button class="control-btn" onclick="showHelp()">❓ 說明</button>
         </div>
 
@@ -838,7 +838,7 @@
                 <br>
                 <p><strong>模式：</strong></p>
                 <p>經典模式：照原本規則比分數。</p>
-                <p>土地競爭：配對後佔領土地並獲得功能卡，分數可購買功能卡，最後先比土地數。</p>
+                <p>土地競爭：配對成功會佔領土地，土地數是主要勝負條件；也會依卡片類型獲得功能卡，分數可用來購買功能卡。</p>
                 <p>每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</p>
                 <p>攻擊成功時只能搶一塊對方土地；若對方沒有防守，會獲得該土地對應的一張功能卡。</p>
                 <p>重組卡會把剩下還沒打開、還沒佔領的牌重新洗牌。</p>
@@ -1684,6 +1684,12 @@
             gameState = createInitialGameState(mode, gameState.soundEnabled);
 
             initGame();
+        }
+
+        function confirmNewGame() {
+            if (confirm('確定要嗎？')) {
+                startNewGame();
+            }
         }
 
         // 切換音效
