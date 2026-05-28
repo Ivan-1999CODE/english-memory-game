@@ -838,7 +838,10 @@
                 <br>
                 <p><strong>模式：</strong></p>
                 <p>經典模式：照原本規則比分數。</p>
-                <p>土地競爭：配對後佔領土地，分數可購買功能卡，最後先比土地數。</p>
+                <p>土地競爭：配對後佔領土地並獲得功能卡，分數可購買功能卡，最後先比土地數。</p>
+                <p>每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</p>
+                <p>攻擊成功時只能搶一塊對方土地；若對方沒有防守，會獲得該土地對應的一張功能卡。</p>
+                <p>重組卡會把剩下還沒打開、還沒佔領的牌重新洗牌。</p>
                 <br>
                 <p><strong>💰 計分方式：</strong></p>
                 <ul style="list-style-position: inside; padding-left: 10px; margin-top: 5px;">
@@ -915,7 +918,7 @@
         const powerTypes = {
             bonus: {
                 label: '加分',
-                shopLabel: '加分',
+                shopLabel: '加分（+15分）',
                 cost: 5,
                 className: 'category-bonus',
                 words: ['spaghetti', 'cookie', 'yogurt', 'sandwich', 'lemonade', 'bakery']
@@ -944,7 +947,7 @@
             random: {
                 label: '隨機',
                 shopLabel: '隨機',
-                cost: 8,
+                cost: 7,
                 className: 'category-random',
                 words: ['backpack', 'crayons', 'hospital', 'subway', 'basket', 'ticket']
             }
@@ -989,7 +992,7 @@
                     2: createPowerInventory()
                 },
                 turnPowerUsed: false,
-                extraTriggerUsed: false,
+                turnPurchaseUsed: false,
                 attackSelection: null
             };
         }
@@ -1181,7 +1184,7 @@
             // 總是換邊
             gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
             gameState.turnPowerUsed = false;
-            gameState.extraTriggerUsed = false;
+            gameState.turnPurchaseUsed = false;
             gameState.attackSelection = null;
             updateUI(); // 在這裡更新UI以反映新玩家
 
@@ -1291,8 +1294,15 @@
             const type = wordPowerType[word];
             if (!type) return;
 
+            awardPowerCard(type, player);
+        }
+
+        function awardPowerCard(type, player, messagePrefix = '獲得') {
+            const power = powerTypes[type];
+            if (!power) return;
+
             gameState.playerPowers[player][type]++;
-            showPowerUp(`玩家 ${player} 獲得 ${powerTypes[type].label} 卡`);
+            showPowerUp(`玩家 ${player} ${messagePrefix} ${power.shopLabel} 卡`);
         }
 
         function setMode(mode) {
@@ -1346,6 +1356,7 @@
                 power &&
                 getScore(player) >= power.cost &&
                 gameState.flippedCards.length === 0 &&
+                !gameState.turnPurchaseUsed &&
                 !gameState.attackSelection;
         }
 
@@ -1365,6 +1376,7 @@
 
             if (action === 'buy') {
                 if (getScore(player) < power.cost) return '分數不足';
+                if (gameState.turnPurchaseUsed) return '本回合已購買';
                 return '';
             }
 
@@ -1430,6 +1442,7 @@
 
             setScore(player, getScore(player) - power.cost);
             gameState.playerPowers[player][type]++;
+            gameState.turnPurchaseUsed = true;
             showPowerUp(`玩家 ${player} 購買 ${power.shopLabel} 卡`);
             updateUI();
         }
@@ -1456,8 +1469,8 @@
 
         function applyPowerEffect(type, player) {
             if (type === 'bonus') {
-                setScore(player, getScore(player) + 10);
-                showPowerUp(`玩家 ${player} 加分 +10`);
+                setScore(player, getScore(player) + 15);
+                showPowerUp(`玩家 ${player} 加分 +15`);
                 return;
             }
 
@@ -1469,7 +1482,7 @@
 
             if (type === 'shuffle') {
                 reshuffleUnmatchedCards();
-                showPowerUp('未佔領卡牌已重新打亂');
+                showPowerUp('剩餘未打開卡牌已重新打亂');
                 return;
             }
 
@@ -1549,17 +1562,13 @@
             showPowerUp(`玩家 ${attacker} 搶佔成功`);
             renderBoard();
 
-            if (!gameState.extraTriggerUsed && stolenType) {
-                gameState.extraTriggerUsed = true;
-                setTimeout(() => triggerStolenLandPower(stolenType, attacker), 350);
+            if (stolenType) {
+                setTimeout(() => {
+                    awardPowerCard(stolenType, attacker, '攻下土地獲得');
+                    updateUI();
+                }, 350);
             }
 
-            updateUI();
-        }
-
-        function triggerStolenLandPower(type, player) {
-            showPowerUp(`搶到${powerTypes[type].label}土地，觸發效果`);
-            applyPowerEffect(type, player);
             updateUI();
         }
 
