@@ -643,6 +643,36 @@
             border-radius: 8px;
             padding: 8px;
             background: #fafafa;
+            filter: grayscale(0.45);
+            opacity: 0.72;
+            transition: transform 0.2s, box-shadow 0.2s, filter 0.2s, opacity 0.2s;
+        }
+
+        .power-card.is-buyable,
+        .power-card.is-usable,
+        .power-card.is-passive {
+            filter: none;
+            opacity: 1;
+        }
+
+        .power-card.is-buyable {
+            border-width: 3px;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.18);
+            transform: translateY(-2px);
+        }
+
+        .power-card.is-usable {
+            border-width: 3px;
+            box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.35), 0 8px 18px rgba(0, 0, 0, 0.22);
+            transform: translateY(-2px);
+        }
+
+        .power-card.is-disabled {
+            background: #f0f0f0;
+        }
+
+        .power-card.is-passive {
+            border-style: dashed;
         }
 
         .power-card.category-bonus {
@@ -694,6 +724,28 @@
         .power-btn:disabled {
             opacity: 0.45;
             cursor: not-allowed;
+        }
+
+        .power-card.is-buyable .power-btn-buy:not(:disabled),
+        .power-card.is-usable .power-btn-use:not(:disabled) {
+            background: #2e7d32;
+            box-shadow: 0 3px 0 rgba(0, 0, 0, 0.22);
+            transform: scale(1.05);
+        }
+
+        .power-status {
+            margin-top: 6px;
+            font-size: 0.86em;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .power-card.is-buyable .power-status {
+            color: #b77900;
+        }
+
+        .power-card.is-usable .power-status {
+            color: #1b7f3a;
         }
 
         .player-territory,
@@ -862,35 +914,35 @@
 
         const powerTypes = {
             bonus: {
-                label: 'Bonus',
+                label: '加分',
                 shopLabel: '加分',
                 cost: 5,
                 className: 'category-bonus',
                 words: ['spaghetti', 'cookie', 'yogurt', 'sandwich', 'lemonade', 'bakery']
             },
             attack: {
-                label: 'Attack',
+                label: '攻擊',
                 shopLabel: '攻擊',
                 cost: 10,
                 className: 'category-attack',
                 words: ['scissors', 'eraser', 'flashlight', 'paintbrush', 'traffic light', 'police station']
             },
             defense: {
-                label: 'Defense',
+                label: '防守',
                 shopLabel: '防守',
                 cost: 8,
                 className: 'category-defense',
                 words: ['blanket', 'pillow', 'mirror', 'towel', 'notebook', 'library']
             },
             shuffle: {
-                label: 'Shuffle',
+                label: '重組',
                 shopLabel: '重組',
                 cost: 12,
                 className: 'category-shuffle',
                 words: ['cousin', 'puzzle', 'mountain', 'museum', 'castle', 'rocket']
             },
             random: {
-                label: 'Random',
+                label: '隨機',
                 shopLabel: '隨機',
                 cost: 8,
                 className: 'category-random',
@@ -1136,6 +1188,7 @@
             setTimeout(() => {
                 gameState.flippedCards = [];
                 gameState.gameActive = true;
+                updateUI();
                 // 檢查遊戲是否結束
                 checkGameEnd();
             }, 500); // 確保與 handleFailedMatch / handleSuccessfulMatch 的 500ms 延遲同步，防止快速點擊導致卡片狀態錯誤
@@ -1286,6 +1339,42 @@
             return gameState.cards.some(card => card.matchedBy === opponent);
         }
 
+        function canBuyPower(type, player = gameState.currentPlayer) {
+            const power = powerTypes[type];
+            return gameState.mode === 'territory' &&
+                gameState.gameActive &&
+                power &&
+                getScore(player) >= power.cost &&
+                gameState.flippedCards.length === 0 &&
+                !gameState.attackSelection;
+        }
+
+        function canUsePower(type, player = gameState.currentPlayer) {
+            if (type === 'defense') return false;
+            return gameState.playerPowers[player][type] > 0 &&
+                canUseTurnPower() &&
+                (type !== 'attack' || hasOpponentLand(player));
+        }
+
+        function getPowerUnavailableReason(type, player = gameState.currentPlayer, action = 'use') {
+            const power = powerTypes[type];
+            if (!power) return '';
+            if (gameState.mode !== 'territory') return '只在土地競爭可用';
+            if (gameState.attackSelection) return '先完成搶地';
+            if (!gameState.gameActive || gameState.flippedCards.length > 0) return '先翻完這回合';
+
+            if (action === 'buy') {
+                if (getScore(player) < power.cost) return '分數不足';
+                return '';
+            }
+
+            if (type === 'defense') return '被搶地時自動使用';
+            if (gameState.playerPowers[player][type] <= 0) return '尚未擁有';
+            if (gameState.turnPowerUsed) return '本回合已使用';
+            if (type === 'attack' && !hasOpponentLand(player)) return '沒有對方土地';
+            return '';
+        }
+
         function renderPowerShop() {
             const shop = document.getElementById('powerShop');
             if (!shop) return;
@@ -1299,33 +1388,49 @@
             const powers = gameState.playerPowers[player];
             shop.innerHTML = Object.keys(powerTypes).map(type => {
                 const power = powerTypes[type];
-                const canBuy = getScore(player) >= power.cost && gameState.flippedCards.length === 0 && !gameState.attackSelection;
-                const canUse = type !== 'defense' && powers[type] > 0 && canUseTurnPower();
-                const useLabel = type === 'defense' ? 'Passive' : 'Use';
+                const canBuy = canBuyPower(type, player);
+                const canUse = canUsePower(type, player);
+                const isPassive = type === 'defense';
+                const buyReason = getPowerUnavailableReason(type, player, 'buy');
+                const useReason = getPowerUnavailableReason(type, player, 'use');
+                const statusText = canUse ? '可以使用' :
+                    canBuy ? '分數夠，可購買' :
+                        isPassive && powers[type] > 0 ? '被搶地時自動防守' :
+                            useReason || buyReason;
+                const stateClass = [
+                    canBuy ? 'is-buyable' : '',
+                    canUse ? 'is-usable' : '',
+                    isPassive && powers[type] > 0 ? 'is-passive' : '',
+                    !canBuy && !canUse && !(isPassive && powers[type] > 0) ? 'is-disabled' : ''
+                ].filter(Boolean).join(' ');
+                const useLabel = isPassive ? '自動防守' : '使用';
                 return `
-                    <div class="power-card ${power.className}">
+                    <div class="power-card ${power.className} ${stateClass}">
                         <div class="power-card-title">
                             <span class="power-chip ${power.className}">${power.shopLabel} x${powers[type]}</span>
                         </div>
                         <div class="power-actions">
-                            <button class="power-btn" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>Buy ${power.cost}</button>
-                            <button class="power-btn" onclick="usePower('${type}')" ${canUse ? '' : 'disabled'}>${useLabel}</button>
+                            <button class="power-btn power-btn-buy" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>購買 ${power.cost}分</button>
+                            <button class="power-btn power-btn-use" onclick="usePower('${type}')" ${canUse ? '' : 'disabled'}>${useLabel}</button>
                         </div>
+                        <div class="power-status">${statusText}</div>
                     </div>
                 `;
             }).join('');
         }
 
         function buyPower(type) {
-            if (gameState.mode !== 'territory' || gameState.flippedCards.length > 0 || gameState.attackSelection) return;
-
             const player = gameState.currentPlayer;
             const power = powerTypes[type];
-            if (!power || getScore(player) < power.cost) return;
+            if (!canBuyPower(type, player)) {
+                const reason = getPowerUnavailableReason(type, player, 'buy');
+                if (reason) showPowerUp(reason);
+                return;
+            }
 
             setScore(player, getScore(player) - power.cost);
             gameState.playerPowers[player][type]++;
-            showPowerUp(`玩家 ${player} 購買 ${power.label} 卡`);
+            showPowerUp(`玩家 ${player} 購買 ${power.shopLabel} 卡`);
             updateUI();
         }
 
@@ -1335,12 +1440,11 @@
                 showPowerUp('防守卡會在被搶地時自動詢問是否使用');
                 return;
             }
-            if (!canUseTurnPower()) return;
 
             const player = gameState.currentPlayer;
-            if (gameState.playerPowers[player][type] <= 0) return;
-            if (type === 'attack' && !hasOpponentLand(player)) {
-                showPowerUp('目前沒有可搶佔的對方土地');
+            if (!canUsePower(type, player)) {
+                const reason = getPowerUnavailableReason(type, player, 'use');
+                if (reason) showPowerUp(reason);
                 return;
             }
 
