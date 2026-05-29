@@ -19,6 +19,7 @@
             font-family: 'Arial Rounded MT Bold', 'Comic Sans MS', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            position: relative;
             display: flex;
             flex-direction: column;
             padding: 10px;
@@ -574,7 +575,7 @@
         }
 
         .sound-toggle {
-            position: fixed;
+            position: absolute;
             top: max(12px, env(safe-area-inset-top));
             right: max(12px, env(safe-area-inset-right));
             background: white;
@@ -630,6 +631,13 @@
             font-weight: bold;
             margin-bottom: 10px;
             color: #333;
+        }
+
+        .territory-rule {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #111;
         }
 
         .power-shop {
@@ -766,6 +774,68 @@
             white-space: nowrap;
         }
 
+        .confirm-content {
+            background: white;
+            padding: 28px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 460px;
+            width: min(92vw, 460px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        .confirm-icon {
+            font-size: 3.5em;
+            margin-bottom: 10px;
+        }
+
+        .confirm-title {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .confirm-message {
+            font-size: 1.15em;
+            color: #444;
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .confirm-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .confirm-btn {
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.15em;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .confirm-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+        }
+
+        .confirm-btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .confirm-btn-ok {
+            background: linear-gradient(135deg, #4ECDC4, #5b86e5);
+            color: white;
+        }
+
         @keyframes slideInRight {
             from {
                 transform: translateX(100%) translateY(-50%);
@@ -811,6 +881,7 @@
     </div>
 
     <div class="territory-panel" id="territoryPanel">
+        <div class="territory-rule">每回合限購買 1 張、主動使用 1 張功能卡</div>
         <div class="territory-title" id="territoryPanelTitle">功能卡商店</div>
         <div class="power-shop" id="powerShop"></div>
     </div>
@@ -839,7 +910,7 @@
                 <p><strong>模式：</strong></p>
                 <p>經典模式：照原本規則比分數。</p>
                 <p>土地競爭：配對成功會佔領土地，土地數是主要勝負條件；也會依卡片類型獲得功能卡，分數可用來購買功能卡。</p>
-                <p>每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</p>
+                <p><strong>土地競爭每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</strong></p>
                 <p>攻擊成功時只能搶一塊對方土地；若對方沒有防守，會獲得該土地對應的一張功能卡。</p>
                 <p>重組卡會把剩下還沒打開、還沒佔領的牌重新洗牌。</p>
                 <br>
@@ -877,6 +948,19 @@
             </div>
 
             <button class="control-btn" onclick="closeModal()">再玩一次</button>
+        </div>
+    </div>
+
+    <!-- 確認 Modal -->
+    <div class="game-over-modal" id="confirmModal">
+        <div class="confirm-content">
+            <div class="confirm-icon" id="confirmIcon">❓</div>
+            <div class="confirm-title" id="confirmTitle">確認</div>
+            <div class="confirm-message" id="confirmMessage">確定要執行嗎？</div>
+            <div class="confirm-actions">
+                <button class="confirm-btn confirm-btn-cancel" id="confirmCancelBtn">取消</button>
+                <button class="confirm-btn confirm-btn-ok" id="confirmOkBtn">確定</button>
+            </div>
         </div>
     </div>
 
@@ -918,6 +1002,7 @@
         const powerTypes = {
             bonus: {
                 label: '加分',
+                cardLabel: 'Bonus',
                 shopLabel: '加分（+15分）',
                 cost: 5,
                 className: 'category-bonus',
@@ -925,6 +1010,7 @@
             },
             attack: {
                 label: '攻擊',
+                cardLabel: 'Attack',
                 shopLabel: '攻擊',
                 cost: 10,
                 className: 'category-attack',
@@ -932,6 +1018,7 @@
             },
             defense: {
                 label: '防守',
+                cardLabel: 'Defense',
                 shopLabel: '防守',
                 cost: 8,
                 className: 'category-defense',
@@ -939,6 +1026,7 @@
             },
             shuffle: {
                 label: '重組',
+                cardLabel: 'Shuffle',
                 shopLabel: '重組',
                 cost: 12,
                 className: 'category-shuffle',
@@ -946,6 +1034,7 @@
             },
             random: {
                 label: '隨機',
+                cardLabel: 'Random',
                 shopLabel: '隨機',
                 cost: 7,
                 className: 'category-random',
@@ -961,6 +1050,7 @@
         });
 
         let selectedMode = 'classic';
+        let pendingConfirmResolver = null;
 
         function createPowerInventory() {
             return {
@@ -1092,7 +1182,7 @@
             const categoryType = wordPowerType[card.wordData.word];
             const category = powerTypes[categoryType];
             const categoryLabel = gameState.mode === 'territory' && category ?
-                `<div class="card-category ${category.className}">${category.label}</div>` : '';
+                `<div class="card-category ${category.className}">${category.cardLabel}</div>` : '';
 
             let matchedClass = '';
             if (card.matchedBy === 1) matchedClass = 'player1-matched';
@@ -1431,9 +1521,62 @@
             }).join('');
         }
 
-        function buyPower(type) {
+        function showConfirmDialog({
+            icon = '❓',
+            title = '確認',
+            message = '確定要執行嗎？',
+            okText = '確定',
+            cancelText = '取消'
+        } = {}) {
+            const modal = document.getElementById('confirmModal');
+            const okButton = document.getElementById('confirmOkBtn');
+            const cancelButton = document.getElementById('confirmCancelBtn');
+
+            if (pendingConfirmResolver) {
+                pendingConfirmResolver(false);
+            }
+
+            document.getElementById('confirmIcon').textContent = icon;
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            okButton.textContent = okText;
+            cancelButton.textContent = cancelText;
+            modal.style.display = 'flex';
+
+            return new Promise(resolve => {
+                pendingConfirmResolver = resolve;
+
+                const finish = confirmed => {
+                    modal.style.display = 'none';
+                    okButton.onclick = null;
+                    cancelButton.onclick = null;
+                    pendingConfirmResolver = null;
+                    resolve(confirmed);
+                };
+
+                okButton.onclick = () => finish(true);
+                cancelButton.onclick = () => finish(false);
+                okButton.focus();
+            });
+        }
+
+        async function buyPower(type) {
             const player = gameState.currentPlayer;
             const power = powerTypes[type];
+            if (!canBuyPower(type, player)) {
+                const reason = getPowerUnavailableReason(type, player, 'buy');
+                if (reason) showPowerUp(reason);
+                return;
+            }
+
+            const confirmed = await showConfirmDialog({
+                icon: '🛒',
+                title: '購買功能卡',
+                message: `玩家 ${player} 要花 ${power.cost} 分購買 ${power.shopLabel} 卡嗎？`,
+                okText: '購買'
+            });
+            if (!confirmed) return;
+
             if (!canBuyPower(type, player)) {
                 const reason = getPowerUnavailableReason(type, player, 'buy');
                 if (reason) showPowerUp(reason);
@@ -1447,7 +1590,7 @@
             updateUI();
         }
 
-        function usePower(type) {
+        async function usePower(type) {
             if (gameState.mode !== 'territory') return;
             if (type === 'defense') {
                 showPowerUp('防守卡會在被搶地時自動詢問是否使用');
@@ -1455,6 +1598,21 @@
             }
 
             const player = gameState.currentPlayer;
+            if (!canUsePower(type, player)) {
+                const reason = getPowerUnavailableReason(type, player, 'use');
+                if (reason) showPowerUp(reason);
+                return;
+            }
+
+            const power = powerTypes[type];
+            const confirmed = await showConfirmDialog({
+                icon: '⚡',
+                title: '使用功能卡',
+                message: `玩家 ${player} 要使用 ${power.shopLabel} 卡嗎？`,
+                okText: '使用'
+            });
+            if (!confirmed) return;
+
             if (!canUsePower(type, player)) {
                 const reason = getPowerUnavailableReason(type, player, 'use');
                 if (reason) showPowerUp(reason);
@@ -1532,7 +1690,9 @@
             return card && card.matchedBy === opponent;
         }
 
-        function handleAttackTarget(index) {
+        async function handleAttackTarget(index) {
+            if (gameState.attackSelection && gameState.attackSelection.confirming) return;
+
             if (!isAttackTarget(index)) {
                 showPowerUp('請選擇對方已佔領的土地');
                 return;
@@ -1543,7 +1703,17 @@
             const targetCard = gameState.cards[index];
 
             if (gameState.playerPowers[defender].defense > 0) {
-                const shouldDefend = window.confirm(`玩家 ${defender} 要使用防守卡抵擋搶地嗎？`);
+                gameState.attackSelection.confirming = true;
+                const shouldDefend = await showConfirmDialog({
+                    icon: '🛡️',
+                    title: '使用防守卡',
+                    message: `玩家 ${defender} 要使用防守卡抵擋搶地嗎？`,
+                    okText: '防守',
+                    cancelText: '不使用'
+                });
+                if (!gameState.attackSelection || gameState.attackSelection.attacker !== attacker) return;
+                gameState.attackSelection.confirming = false;
+
                 if (shouldDefend) {
                     gameState.playerPowers[defender].defense--;
                     gameState.attackSelection = null;
@@ -1686,8 +1856,15 @@
             initGame();
         }
 
-        function confirmNewGame() {
-            if (confirm('確定要嗎？')) {
+        async function confirmNewGame() {
+            const confirmed = await showConfirmDialog({
+                icon: '🎲',
+                title: '開始新遊戲',
+                message: '確定要重新開始嗎？目前這一局會被清除。',
+                okText: '新遊戲'
+            });
+
+            if (confirmed) {
                 startNewGame();
             }
         }
