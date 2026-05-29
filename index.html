@@ -1012,7 +1012,7 @@
                 label: '攻擊',
                 cardLabel: 'Attack',
                 shopLabel: '攻擊',
-                cost: 10,
+                cost: 18,
                 className: 'category-attack',
                 words: ['scissors', 'eraser', 'flashlight', 'paintbrush', 'traffic light', 'police station']
             },
@@ -1020,7 +1020,7 @@
                 label: '防守',
                 cardLabel: 'Defense',
                 shopLabel: '防守',
-                cost: 8,
+                cost: 10,
                 className: 'category-defense',
                 words: ['blanket', 'pillow', 'mirror', 'towel', 'notebook', 'library']
             },
@@ -1028,7 +1028,7 @@
                 label: '重組',
                 cardLabel: 'Shuffle',
                 shopLabel: '重組',
-                cost: 12,
+                cost: 6,
                 className: 'category-shuffle',
                 words: ['cousin', 'puzzle', 'mountain', 'museum', 'castle', 'rocket']
             },
@@ -1083,6 +1083,7 @@
                 },
                 turnPowerUsed: false,
                 turnPurchaseUsed: false,
+                turnPurchasedPowers: createPowerInventory(),
                 attackSelection: null
             };
         }
@@ -1275,6 +1276,7 @@
             gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
             gameState.turnPowerUsed = false;
             gameState.turnPurchaseUsed = false;
+            gameState.turnPurchasedPowers = createPowerInventory();
             gameState.attackSelection = null;
             updateUI(); // 在這裡更新UI以反映新玩家
 
@@ -1452,7 +1454,11 @@
 
         function canUsePower(type, player = gameState.currentPlayer) {
             if (type === 'defense') return false;
-            return gameState.playerPowers[player][type] > 0 &&
+            const availableCount = type === 'bonus' ?
+                gameState.playerPowers[player][type] - gameState.turnPurchasedPowers[type] :
+                gameState.playerPowers[player][type];
+
+            return availableCount > 0 &&
                 canUseTurnPower() &&
                 (type !== 'attack' || hasOpponentLand(player));
         }
@@ -1472,6 +1478,9 @@
 
             if (type === 'defense') return '被搶地時自動使用';
             if (gameState.playerPowers[player][type] <= 0) return '尚未擁有';
+            if (type === 'bonus' && gameState.playerPowers[player][type] <= gameState.turnPurchasedPowers[type]) {
+                return '本回合購買的加分卡下回合才能使用';
+            }
             if (gameState.turnPowerUsed) return '本回合已使用';
             if (type === 'attack' && !hasOpponentLand(player)) return '沒有對方土地';
             return '';
@@ -1585,6 +1594,7 @@
 
             setScore(player, getScore(player) - power.cost);
             gameState.playerPowers[player][type]++;
+            gameState.turnPurchasedPowers[type]++;
             gameState.turnPurchaseUsed = true;
             showPowerUp(`玩家 ${player} 購買 ${power.shopLabel} 卡`);
             updateUI();
@@ -1732,7 +1742,7 @@
             showPowerUp(`玩家 ${attacker} 搶佔成功`);
             renderBoard();
 
-            if (stolenType) {
+            if (stolenType && stolenType !== 'attack') {
                 setTimeout(() => {
                     awardPowerCard(stolenType, attacker, '攻下土地獲得');
                     updateUI();
