@@ -911,8 +911,9 @@
                 <p>經典模式：照原本規則比分數。</p>
                 <p>土地競爭：配對成功會佔領土地，土地數是主要勝負條件；也會依卡片類型獲得功能卡，分數可用來購買功能卡。</p>
                 <p><strong>土地競爭每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</strong></p>
+                <p>加分卡不能購買，只能透過土地畫面翻到或隨機卡抽到取得；加分效果較低。</p>
                 <p>攻擊成功時只能搶一塊對方土地；若對方沒有防守，會獲得該土地對應的一張功能卡。</p>
-                <p>重組卡會把剩下還沒打開、還沒佔領的牌重新洗牌。</p>
+                <p>重組卡會在使用者本回合翻牌結束後，把剩下還沒打開、還沒佔領的牌重新洗牌。</p>
                 <br>
                 <p><strong>💰 計分方式：</strong></p>
                 <ul style="list-style-position: inside; padding-left: 10px; margin-top: 5px;">
@@ -1003,8 +1004,9 @@
             bonus: {
                 label: '加分',
                 cardLabel: 'Bonus',
-                shopLabel: '加分（+15分）',
-                cost: 5,
+                shopLabel: '加分（+5分）',
+                cost: 0,
+                buyable: false,
                 className: 'category-bonus',
                 words: ['spaghetti', 'cookie', 'yogurt', 'sandwich', 'lemonade', 'bakery']
             },
@@ -1012,7 +1014,7 @@
                 label: '攻擊',
                 cardLabel: 'Attack',
                 shopLabel: '攻擊',
-                cost: 18,
+                cost: 10,
                 className: 'category-attack',
                 words: ['scissors', 'eraser', 'flashlight', 'paintbrush', 'traffic light', 'police station']
             },
@@ -1020,7 +1022,7 @@
                 label: '防守',
                 cardLabel: 'Defense',
                 shopLabel: '防守',
-                cost: 10,
+                cost: 15,
                 className: 'category-defense',
                 words: ['blanket', 'pillow', 'mirror', 'towel', 'notebook', 'library']
             },
@@ -1084,6 +1086,7 @@
                 turnPowerUsed: false,
                 turnPurchaseUsed: false,
                 turnPurchasedPowers: createPowerInventory(),
+                pendingShufflePlayer: null,
                 attackSelection: null
             };
         }
@@ -1272,16 +1275,24 @@
                 handleFailedMatch(index1, index2, ...(card3 ? [index3] : []));
             }
 
-            // 總是換邊
-            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
-            gameState.turnPowerUsed = false;
-            gameState.turnPurchaseUsed = false;
-            gameState.turnPurchasedPowers = createPowerInventory();
-            gameState.attackSelection = null;
-            updateUI(); // 在這裡更新UI以反映新玩家
+            const resolvingPlayer = gameState.currentPlayer;
+            const shouldReshuffle = gameState.pendingShufflePlayer === resolvingPlayer;
 
             setTimeout(() => {
                 gameState.flippedCards = [];
+
+                if (shouldReshuffle) {
+                    gameState.pendingShufflePlayer = null;
+                    reshuffleUnmatchedCards();
+                    showPowerUp('重組卡發動：剩餘未佔領卡牌已重新打亂');
+                }
+
+                // 總是換邊
+                gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+                gameState.turnPowerUsed = false;
+                gameState.turnPurchaseUsed = false;
+                gameState.turnPurchasedPowers = createPowerInventory();
+                gameState.attackSelection = null;
                 gameState.gameActive = true;
                 updateUI();
                 // 檢查遊戲是否結束
@@ -1446,6 +1457,7 @@
             return gameState.mode === 'territory' &&
                 gameState.gameActive &&
                 power &&
+                power.buyable !== false &&
                 getScore(player) >= power.cost &&
                 gameState.flippedCards.length === 0 &&
                 !gameState.turnPurchaseUsed &&
@@ -1471,6 +1483,7 @@
             if (!gameState.gameActive || gameState.flippedCards.length > 0) return '先翻完這回合';
 
             if (action === 'buy') {
+                if (power.buyable === false) return '只能透過翻牌或隨機抽卡獲得';
                 if (getScore(player) < power.cost) return '分數不足';
                 if (gameState.turnPurchaseUsed) return '本回合已購買';
                 return '';
@@ -1478,9 +1491,6 @@
 
             if (type === 'defense') return '被搶地時自動使用';
             if (gameState.playerPowers[player][type] <= 0) return '尚未擁有';
-            if (type === 'bonus' && gameState.playerPowers[player][type] <= gameState.turnPurchasedPowers[type]) {
-                return '本回合購買的加分卡下回合才能使用';
-            }
             if (gameState.turnPowerUsed) return '本回合已使用';
             if (type === 'attack' && !hasOpponentLand(player)) return '沒有對方土地';
             return '';
@@ -1506,6 +1516,7 @@
                 const useReason = getPowerUnavailableReason(type, player, 'use');
                 const statusText = canUse ? '可以使用' :
                     canBuy ? '分數夠，可購買' :
+                        power.buyable === false && powers[type] <= 0 ? buyReason :
                         isPassive && powers[type] > 0 ? '被搶地時自動防守' :
                             useReason || buyReason;
                 const stateClass = [
@@ -1515,13 +1526,14 @@
                     !canBuy && !canUse && !(isPassive && powers[type] > 0) ? 'is-disabled' : ''
                 ].filter(Boolean).join(' ');
                 const useLabel = isPassive ? '自動防守' : '使用';
+                const buyLabel = power.buyable === false ? '獎勵限定' : `購買 ${power.cost}分`;
                 return `
                     <div class="power-card ${power.className} ${stateClass}">
                         <div class="power-card-title">
                             <span class="power-chip ${power.className}">${power.shopLabel} x${powers[type]}</span>
                         </div>
                         <div class="power-actions">
-                            <button class="power-btn power-btn-buy" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>購買 ${power.cost}分</button>
+                            <button class="power-btn power-btn-buy" onclick="buyPower('${type}')" ${canBuy ? '' : 'disabled'}>${buyLabel}</button>
                             <button class="power-btn power-btn-use" onclick="usePower('${type}')" ${canUse ? '' : 'disabled'}>${useLabel}</button>
                         </div>
                         <div class="power-status">${statusText}</div>
@@ -1637,8 +1649,8 @@
 
         function applyPowerEffect(type, player) {
             if (type === 'bonus') {
-                setScore(player, getScore(player) + 15);
-                showPowerUp(`玩家 ${player} 加分 +15`);
+                setScore(player, getScore(player) + 5);
+                showPowerUp(`玩家 ${player} 加分 +5`);
                 return;
             }
 
@@ -1649,8 +1661,8 @@
             }
 
             if (type === 'shuffle') {
-                reshuffleUnmatchedCards();
-                showPowerUp('剩餘未打開卡牌已重新打亂');
+                gameState.pendingShufflePlayer = player;
+                showPowerUp('重組卡已準備，會在本回合翻牌結束後發動');
                 return;
             }
 
