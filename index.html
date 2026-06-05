@@ -3,29 +3,42 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>雙人英文記憶對戰 - Two Player Memory Battle</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
+        }
+
+        html {
+            min-height: 100%;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
         }
 
         body {
             font-family: 'Arial Rounded MT Bold', 'Comic Sans MS', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            min-height: 100dvh;
             position: relative;
             display: flex;
             flex-direction: column;
-            padding: 10px;
+            padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
             overflow-x: hidden;
             transition: background 0.5s ease;
             /* 新增：平滑的背景過渡 */
+        }
+
+        button,
+        .card,
+        .sound-toggle {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
         }
 
         .game-header {
@@ -87,6 +100,11 @@
         }
 
         .game-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
             text-align: center;
             padding: 10px;
             width: 100%;
@@ -106,7 +124,7 @@
             transition: all 0.3s;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             font-weight: bold;
-            margin: 5px 10px;
+            margin: 0;
             /* 增加垂直間距 */
         }
 
@@ -124,7 +142,30 @@
             justify-content: center;
             gap: 8px;
             flex-wrap: wrap;
-            margin-bottom: 8px;
+            margin-bottom: 0;
+            width: 100%;
+        }
+
+        .bank-select {
+            background: white;
+            color: #333;
+            border: 2px solid transparent;
+            padding: 10px 14px;
+            font-size: 1em;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+        }
+
+        .word-topic-current {
+            width: 100%;
+            color: #222;
+            background: rgba(255, 255, 255, 0.72);
+            border-radius: 14px;
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 0.95em;
         }
 
         .mode-btn {
@@ -181,7 +222,7 @@
 
         .game-board {
             display: grid;
-            grid-template-columns: repeat(10, 1fr);
+            grid-template-columns: repeat(10, minmax(0, 1fr));
             gap: 8px;
             padding: 15px;
             background: rgba(255, 255, 255, 0.1);
@@ -199,6 +240,7 @@
             transform-style: preserve-3d;
             transition: transform 0.6s;
             min-height: 120px;
+            min-width: 0;
             /* 維持最小高度 */
         }
 
@@ -216,6 +258,12 @@
             outline-offset: 3px;
             cursor: crosshair;
             pointer-events: auto;
+        }
+
+        .card.hint-highlight {
+            outline: 5px solid #f1c40f;
+            outline-offset: 4px;
+            box-shadow: 0 0 24px rgba(241, 196, 15, 0.9);
         }
 
         @keyframes matchedAnimation {
@@ -300,6 +348,14 @@
             filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
         }
 
+        .card-emoji img {
+            display: block;
+            max-width: 100%;
+            max-height: 3.2em;
+            object-fit: contain;
+            margin: 0 auto;
+        }
+
         .card-word {
             font-size: 1.1em;
             font-weight: bold;
@@ -344,6 +400,10 @@
 
         .category-random {
             background: #16a085;
+        }
+
+        .category-hint {
+            background: #d35400;
         }
 
 
@@ -481,19 +541,60 @@
 
         /* 響應式調整 */
         @media (max-width: 768px) {
+            body {
+                padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+            }
+
             .game-header {
                 flex-direction: column;
+                gap: 8px;
+                padding: 10px;
+                border-radius: 14px;
+                margin-bottom: 8px;
             }
 
             .player-section {
                 width: 100%;
+                min-width: 0;
+                padding: 10px;
                 margin: 5px 0 !important;
                 /* 強制移除左右間距 */
+            }
+
+            .player-section.active {
+                transform: none;
             }
 
             .game-controls {
                 order: 0;
                 /* 控制按鈕在最上面 */
+                padding: 0;
+            }
+
+            .control-btn,
+            .mode-btn,
+            .confirm-btn,
+            .power-btn {
+                min-height: 44px;
+            }
+
+            .control-btn {
+                padding: 11px 16px;
+                font-size: 1.05em;
+            }
+
+            .mode-btn {
+                flex: 1 1 130px;
+                padding: 10px 12px;
+            }
+
+            .player-name {
+                font-size: 1.35em;
+                margin-bottom: 4px;
+            }
+
+            .player-score {
+                font-size: 1.9em;
             }
 
             .player-section.player1 {
@@ -505,15 +606,37 @@
             }
 
             .turn-indicator {
-                padding: 10px;
-                font-size: 1.2em;
+                padding: 8px;
+                font-size: 1.05em;
+            }
+
+            .game-over-modal {
+                align-items: flex-start;
+                padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+                overflow-y: auto;
+            }
+
+            .game-over-content,
+            .confirm-content {
+                max-height: calc(100dvh - 16px);
+                padding: 20px;
+                border-radius: 18px;
+            }
+
+            .winner-announcement {
+                font-size: 2em;
+            }
+
+            .trophy {
+                font-size: 3.2em;
+                margin: 8px 0 14px;
             }
         }
 
         /* 平板優化 */
         @media (min-width: 768px) and (max-width: 1024px) {
             .game-board {
-                grid-template-columns: repeat(8, 1fr);
+                grid-template-columns: repeat(8, minmax(0, 1fr));
                 gap: 10px;
             }
 
@@ -524,53 +647,69 @@
             .card-emoji {
                 font-size: 3em;
             }
+
+            .card-emoji img {
+                max-height: 2.8em;
+            }
         }
 
         /* 手機橫向模式 */
         @media (max-width: 767px) and (orientation: landscape) {
             .game-board {
-                grid-template-columns: repeat(10, 1fr);
-                gap: 5px;
+                grid-template-columns: repeat(10, minmax(0, 1fr));
+                gap: 4px;
+                padding: 8px;
+                border-radius: 12px;
             }
 
             .card {
-                min-height: 70px;
+                min-height: 0;
             }
 
             .card-emoji {
-                font-size: 2em;
+                font-size: clamp(1.2rem, 4vw, 2em);
+            }
+
+            .card-emoji img {
+                max-height: 1.8em;
             }
 
             .card-word {
-                font-size: 0.8em;
+                font-size: clamp(0.58rem, 2.2vw, 0.8em);
             }
 
             .card-chinese {
-                font-size: 0.7em;
+                font-size: clamp(0.55rem, 2vw, 0.7em);
             }
         }
 
         /* 手機直向模式 */
         @media (max-width: 767px) and (orientation: portrait) {
             .game-board {
-                grid-template-columns: repeat(5, 1fr);
-                gap: 5px;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                gap: 4px;
+                padding: 8px;
+                border-radius: 12px;
             }
 
             .card {
-                min-height: 80px;
+                min-height: 0;
             }
 
             .card-emoji {
-                font-size: 2.5em;
+                font-size: clamp(1.3rem, 8vw, 2.4em);
+            }
+
+            .card-emoji img {
+                max-height: 2.1em;
             }
 
             .card-word {
-                font-size: 0.9em;
+                font-size: clamp(0.6rem, 3vw, 0.85em);
             }
 
             .card-chinese {
-                font-size: 0.8em;
+                font-size: clamp(0.58rem, 2.8vw, 0.75em);
             }
         }
 
@@ -708,6 +847,109 @@
             background: #eafff9;
         }
 
+        .power-card.category-hint {
+            border-color: #d35400;
+            background: #fff3e8;
+        }
+
+        .word-bank-content {
+            max-width: 900px;
+        }
+
+        .word-bank-summary {
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+
+        .word-bank-section {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .word-bank-section h3 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .word-topic-choices {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+            margin: 14px 0 18px;
+            text-align: left;
+        }
+
+        .word-topic-choice {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            background: #f8f9fb;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .word-topic-choice input {
+            margin-top: 3px;
+        }
+
+        .word-topic-name {
+            display: block;
+            font-weight: bold;
+            color: #222;
+        }
+
+        .word-topic-meta {
+            display: block;
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.35;
+        }
+
+        .word-bank-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+
+        .word-bank-card {
+            display: grid;
+            grid-template-columns: 42px minmax(0, 1fr);
+            gap: 8px;
+            align-items: center;
+            background: #f8f9fb;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .word-bank-visual {
+            font-size: 1.8em;
+            text-align: center;
+        }
+
+        .word-bank-visual img {
+            display: block;
+            max-width: 40px;
+            max-height: 40px;
+            object-fit: contain;
+            margin: 0 auto;
+        }
+
+        .word-bank-word {
+            font-weight: bold;
+            color: #222;
+            overflow-wrap: anywhere;
+        }
+
+        .word-bank-chinese {
+            color: #555;
+            font-size: 0.92em;
+        }
+
         .power-card-title {
             font-weight: bold;
             margin-bottom: 6px;
@@ -784,6 +1026,15 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
         }
 
+        .confirm-content.is-defense-alert {
+            border: 5px solid #e53935;
+            box-shadow: 0 0 0 6px rgba(229, 57, 53, 0.18), 0 14px 46px rgba(0, 0, 0, 0.4);
+        }
+
+        #confirmModal {
+            align-items: center;
+        }
+
         .confirm-icon {
             font-size: 3.5em;
             margin-bottom: 10px;
@@ -794,6 +1045,31 @@
             font-weight: bold;
             color: #333;
             margin-bottom: 12px;
+        }
+
+        .confirm-alert {
+            display: none;
+            background: #ffebee;
+            color: #b71c1c;
+            border: 2px solid #ef5350;
+            border-radius: 14px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 1.15em;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        .confirm-content.is-defense-alert .confirm-title {
+            color: #b71c1c;
+        }
+
+        .confirm-content.is-defense-alert .confirm-alert {
+            display: block;
+        }
+
+        .confirm-content.is-defense-alert .confirm-btn-ok {
+            background: linear-gradient(135deg, #d32f2f, #ff7043);
         }
 
         .confirm-message {
@@ -836,6 +1112,24 @@
             color: white;
         }
 
+        @media (max-width: 768px) {
+            .sound-toggle {
+                width: 46px;
+                height: 46px;
+                font-size: 1.35em;
+            }
+
+            .territory-panel {
+                padding: 10px;
+                margin-bottom: 8px;
+                border-radius: 12px;
+            }
+
+            .power-shop {
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+            }
+        }
+
         @keyframes slideInRight {
             from {
                 transform: translateX(100%) translateY(-50%);
@@ -862,7 +1156,9 @@
             <div class="mode-toggle">
                 <button class="mode-btn active" id="classicModeBtn" onclick="setMode('classic')">經典模式</button>
                 <button class="mode-btn" id="territoryModeBtn" onclick="setMode('territory')">土地競爭</button>
+                <button class="mode-btn" onclick="showWordBank()">更換單字</button>
             </div>
+            <div class="word-topic-current" id="currentTopicLabel">目前：原始預設</div>
             <button class="control-btn" onclick="confirmNewGame()">🎲 新遊戲</button>
             <button class="control-btn" onclick="showHelp()">❓ 說明</button>
         </div>
@@ -911,8 +1207,9 @@
                 <p>經典模式：照原本規則比分數。</p>
                 <p>土地競爭：配對成功會佔領土地，土地數是主要勝負條件；也會依卡片類型獲得功能卡，分數可用來購買功能卡。</p>
                 <p><strong>土地競爭每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</strong></p>
-                <p>加分卡不能購買，只能透過土地畫面翻到或隨機卡抽到取得；加分效果較低。</p>
-                <p>攻擊成功時只能搶一塊對方土地；若對方沒有防守，會獲得該土地對應的一張功能卡。</p>
+                <p>加分卡不能購買，只能透過土地畫面翻到或隨機卡抽到取得；使用後可加 10 分。</p>
+                <p>提示卡可以翻到也可以花 12 分購買；使用後會提示已經看過、目前未佔領的可配對組合，若沒有可提示組合則不消耗卡。</p>
+                <p>攻擊成功時只能搶一塊對方土地；若對方沒有防守，會獲得該土地對應的一張功能卡，但攻下攻擊類土地不會再獲得攻擊卡。</p>
                 <p>重組卡會在使用者本回合翻牌結束後，把剩下還沒打開、還沒佔領的牌重新洗牌。</p>
                 <br>
                 <p><strong>💰 計分方式：</strong></p>
@@ -926,6 +1223,23 @@
             </div>
 
             <button class="control-btn" onclick="closeHelpModal()">知道了</button>
+        </div>
+    </div>
+
+    <!-- 題庫 Modal -->
+    <div class="game-over-modal" id="wordBankModal">
+        <div class="game-over-content word-bank-content">
+            <div class="trophy">📚</div>
+            <div class="winner-announcement" style="font-size: 2.5em; margin-bottom: 14px;">題庫</div>
+            <div class="word-bank-summary">
+                勾選一個或多個主題後，每局會從所選主題抽 30 組單字，再隨機分成 6 種功能卡，各 5 組。
+            </div>
+            <div class="word-topic-choices" id="wordTopicChoices"></div>
+            <div class="confirm-actions" style="margin-bottom: 20px;">
+                <button class="confirm-btn confirm-btn-ok" onclick="applySelectedWordTopics()">套用並重新開始</button>
+            </div>
+            <div id="wordBankList"></div>
+            <button class="control-btn" onclick="closeWordBank()">關閉</button>
         </div>
     </div>
 
@@ -957,6 +1271,7 @@
         <div class="confirm-content">
             <div class="confirm-icon" id="confirmIcon">❓</div>
             <div class="confirm-title" id="confirmTitle">確認</div>
+            <div class="confirm-alert" id="confirmAlert"></div>
             <div class="confirm-message" id="confirmMessage">確定要執行嗎？</div>
             <div class="confirm-actions">
                 <button class="confirm-btn confirm-btn-cancel" id="confirmCancelBtn">取消</button>
@@ -1000,58 +1315,217 @@
             { word: 'traffic light', emoji: '🚦', chinese: '紅綠燈' }
         ];
 
+        const spareQuestionBanks = [
+            {
+                id: 'daily-items',
+                name: '生活物品',
+                words: [
+                    { word: 'umbrella', emoji: '☂️', chinese: '雨傘' },
+                    { word: 'suitcase', emoji: '🧳', chinese: '行李箱' },
+                    { word: 'thermometer', emoji: '🌡️', chinese: '溫度計' },
+                    { word: 'toothbrush', emoji: '🪥', chinese: '牙刷' },
+                    { word: 'calculator', emoji: '🧮', chinese: '計算機' },
+                    { word: 'microscope', emoji: '🔬', chinese: '顯微鏡' },
+                    { word: 'telescope', emoji: '🔭', chinese: '望遠鏡' },
+                    { word: 'compass', emoji: '🧭', chinese: '指南針' },
+                    { word: 'calendar', emoji: '📅', chinese: '日曆' },
+                    { word: 'envelope', emoji: '✉️', chinese: '信封' },
+                    { word: 'headphones', emoji: '🎧', chinese: '耳機' },
+                    { word: 'microphone', emoji: '🎤', chinese: '麥克風' },
+                    { word: 'skateboard', emoji: '🛹', chinese: '滑板' },
+                    { word: 'bicycle', emoji: '🚲', chinese: '腳踏車' },
+                    { word: 'helmet', emoji: '🪖', chinese: '安全帽' },
+                    { word: 'wallet', emoji: '👛', chinese: '錢包' },
+                    { word: 'watch', emoji: '⌚', chinese: '手錶' },
+                    { word: 'soap', emoji: '🧼', chinese: '肥皂' },
+                    { word: 'sponge', emoji: '🧽', chinese: '海綿' },
+                    { word: 'key', emoji: '🔑', chinese: '鑰匙' },
+                    { word: 'lamp', emoji: '💡', chinese: '檯燈' },
+                    { word: 'battery', emoji: '🔋', chinese: '電池' },
+                    { word: 'magnet', emoji: '🧲', chinese: '磁鐵' },
+                    { word: 'broom', emoji: '🧹', chinese: '掃把' },
+                    { word: 'bucket', emoji: '🪣', chinese: '水桶' },
+                    { word: 'chair', emoji: '🪑', chinese: '椅子' },
+                    { word: 'window', emoji: '🪟', chinese: '窗戶' },
+                    { word: 'package', emoji: '📦', chinese: '包裹' },
+                    { word: 'newspaper', emoji: '📰', chinese: '報紙' },
+                    { word: 'remote control', emoji: '🎮', chinese: '遙控器' }
+                ]
+            },
+            {
+                id: 'places-traffic',
+                name: '地點與交通',
+                words: [
+                    { word: 'airport', emoji: '✈️', chinese: '機場' },
+                    { word: 'harbor', emoji: '⚓', chinese: '港口' },
+                    { word: 'lighthouse', emoji: '🗼', chinese: '燈塔' },
+                    { word: 'bridge', emoji: '🌉', chinese: '橋' },
+                    { word: 'tunnel', emoji: '🚇', chinese: '隧道' },
+                    { word: 'fountain', emoji: '⛲', chinese: '噴水池' },
+                    { word: 'playground', emoji: '🛝', chinese: '遊樂場' },
+                    { word: 'stadium', emoji: '🏟️', chinese: '體育場' },
+                    { word: 'aquarium', emoji: '🐠', chinese: '水族館' },
+                    { word: 'planetarium', emoji: '🪐', chinese: '天文館' },
+                    { word: 'pharmacy', emoji: '💊', chinese: '藥局' },
+                    { word: 'restaurant', emoji: '🍽️', chinese: '餐廳' },
+                    { word: 'bookstore', emoji: '📚', chinese: '書店' },
+                    { word: 'train station', emoji: '🚉', chinese: '火車站' },
+                    { word: 'fire station', emoji: '🚒', chinese: '消防局' },
+                    { word: 'parking lot', emoji: '🅿️', chinese: '停車場' },
+                    { word: 'bus stop', emoji: '🚏', chinese: '公車站' },
+                    { word: 'crosswalk', emoji: '🚸', chinese: '斑馬線' },
+                    { word: 'ferry', emoji: '⛴️', chinese: '渡輪' },
+                    { word: 'taxi', emoji: '🚕', chinese: '計程車' },
+                    { word: 'tram', emoji: '🚋', chinese: '電車' },
+                    { word: 'cable car', emoji: '🚠', chinese: '纜車' },
+                    { word: 'gas station', emoji: '⛽', chinese: '加油站' },
+                    { word: 'market', emoji: '🛒', chinese: '市場' },
+                    { word: 'factory', emoji: '🏭', chinese: '工廠' },
+                    { word: 'post office', emoji: '📮', chinese: '郵局' },
+                    { word: 'clinic', emoji: '🩺', chinese: '診所' },
+                    { word: 'temple', emoji: '⛩️', chinese: '廟宇' },
+                    { word: 'garden', emoji: '🌷', chinese: '花園' },
+                    { word: 'campground', emoji: '🏕️', chinese: '露營地' }
+                ]
+            },
+            {
+                id: 'food-drinks',
+                name: '食物與飲料',
+                words: [
+                    { word: 'noodles', emoji: '🍜', chinese: '麵條' },
+                    { word: 'pancake', emoji: '🥞', chinese: '鬆餅' },
+                    { word: 'dumpling', emoji: '🥟', chinese: '水餃' },
+                    { word: 'popcorn', emoji: '🍿', chinese: '爆米花' },
+                    { word: 'cupcake', emoji: '🧁', chinese: '杯子蛋糕' },
+                    { word: 'watermelon', emoji: '🍉', chinese: '西瓜' },
+                    { word: 'pineapple', emoji: '🍍', chinese: '鳳梨' },
+                    { word: 'coconut', emoji: '🥥', chinese: '椰子' },
+                    { word: 'avocado', emoji: '🥑', chinese: '酪梨' },
+                    { word: 'mushroom', emoji: '🍄', chinese: '蘑菇' },
+                    { word: 'cereal', emoji: '🥣', chinese: '麥片' },
+                    { word: 'honey', emoji: '🍯', chinese: '蜂蜜' },
+                    { word: 'jam', emoji: '🫙', chinese: '果醬' },
+                    { word: 'smoothie', emoji: '🥤', chinese: '冰沙' },
+                    { word: 'sushi', emoji: '🍣', chinese: '壽司' },
+                    { word: 'waffle', emoji: '🧇', chinese: '格子鬆餅' },
+                    { word: 'pretzel', emoji: '🥨', chinese: '椒鹽脆餅' },
+                    { word: 'taco', emoji: '🌮', chinese: '塔可' },
+                    { word: 'burrito', emoji: '🌯', chinese: '墨西哥捲餅' },
+                    { word: 'falafel', emoji: '🧆', chinese: '鷹嘴豆餅' },
+                    { word: 'croissant', emoji: '🥐', chinese: '可頌' },
+                    { word: 'bagel', emoji: '🥯', chinese: '貝果' },
+                    { word: 'oatmeal', emoji: '🥣', chinese: '燕麥粥' },
+                    { word: 'yogurt cup', emoji: '🥛', chinese: '優格杯' },
+                    { word: 'pudding', emoji: '🍮', chinese: '布丁' },
+                    { word: 'milkshake', emoji: '🥤', chinese: '奶昔' },
+                    { word: 'tea pot', emoji: '🫖', chinese: '茶壺' },
+                    { word: 'hot chocolate', emoji: '☕', chinese: '熱巧克力' },
+                    { word: 'salad', emoji: '🥗', chinese: '沙拉' },
+                    { word: 'spice jar', emoji: '🧂', chinese: '香料罐' }
+                ]
+            },
+            {
+                id: 'school-creative',
+                name: '學校與創作',
+                words: [
+                    { word: 'stapler', emoji: '📎', chinese: '訂書機' },
+                    { word: 'marker', emoji: '🖊️', chinese: '麥克筆' },
+                    { word: 'ruler', emoji: '📏', chinese: '尺' },
+                    { word: 'palette', emoji: '🎨', chinese: '調色盤' },
+                    { word: 'clay', emoji: '🧱', chinese: '黏土' },
+                    { word: 'locker', emoji: '🗄️', chinese: '置物櫃' },
+                    { word: 'chalkboard', emoji: '⬛', chinese: '黑板' },
+                    { word: 'globe', emoji: '🌐', chinese: '地球儀' },
+                    { word: 'diploma', emoji: '🎓', chinese: '證書' },
+                    { word: 'violin', emoji: '🎻', chinese: '小提琴' },
+                    { word: 'drum', emoji: '🥁', chinese: '鼓' },
+                    { word: 'guitar', emoji: '🎸', chinese: '吉他' },
+                    { word: 'keyboard', emoji: '🎹', chinese: '鍵盤' },
+                    { word: 'trophy', emoji: '🏆', chinese: '獎盃' },
+                    { word: 'camera', emoji: '📷', chinese: '相機' },
+                    { word: 'printer', emoji: '🖨️', chinese: '印表機' },
+                    { word: 'paper clip', emoji: '📎', chinese: '迴紋針' },
+                    { word: 'folder', emoji: '📁', chinese: '資料夾' },
+                    { word: 'clipboard', emoji: '📋', chinese: '寫字板' },
+                    { word: 'paint tube', emoji: '🎨', chinese: '顏料管' },
+                    { word: 'easel', emoji: '🖼️', chinese: '畫架' },
+                    { word: 'music stand', emoji: '🎼', chinese: '譜架' },
+                    { word: 'projector', emoji: '📽️', chinese: '投影機' },
+                    { word: 'tablet', emoji: '📱', chinese: '平板' },
+                    { word: 'laptop', emoji: '💻', chinese: '筆電' },
+                    { word: 'badge', emoji: '🏷️', chinese: '名牌' },
+                    { word: 'flash card', emoji: '🃏', chinese: '字卡' },
+                    { word: 'test tube', emoji: '🧪', chinese: '試管' },
+                    { word: 'abacus', emoji: '🧮', chinese: '算盤' },
+                    { word: 'megaphone', emoji: '📣', chinese: '擴音器' }
+                ]
+            }
+        ];
+
+        const wordTopics = [
+            {
+                id: 'starter',
+                name: '原始預設',
+                description: '目前遊戲原本使用的 30 個單字。',
+                words: allWords
+            },
+            ...spareQuestionBanks.map(bank => ({
+                id: bank.id,
+                name: bank.name,
+                description: `${bank.name}主題單字。`,
+                words: bank.words
+            }))
+        ];
+
         const powerTypes = {
             bonus: {
                 label: '加分',
                 cardLabel: 'Bonus',
-                shopLabel: '加分（+5分）',
+                shopLabel: '加分（+10分）',
                 cost: 0,
                 buyable: false,
-                className: 'category-bonus',
-                words: ['spaghetti', 'cookie', 'yogurt', 'sandwich', 'lemonade', 'bakery']
+                className: 'category-bonus'
             },
             attack: {
                 label: '攻擊',
                 cardLabel: 'Attack',
                 shopLabel: '攻擊',
                 cost: 10,
-                className: 'category-attack',
-                words: ['scissors', 'eraser', 'flashlight', 'paintbrush', 'traffic light', 'police station']
+                className: 'category-attack'
             },
             defense: {
                 label: '防守',
                 cardLabel: 'Defense',
                 shopLabel: '防守',
-                cost: 15,
-                className: 'category-defense',
-                words: ['blanket', 'pillow', 'mirror', 'towel', 'notebook', 'library']
+                cost: 25,
+                className: 'category-defense'
             },
             shuffle: {
                 label: '重組',
                 cardLabel: 'Shuffle',
                 shopLabel: '重組',
                 cost: 6,
-                className: 'category-shuffle',
-                words: ['cousin', 'puzzle', 'mountain', 'museum', 'castle', 'rocket']
+                className: 'category-shuffle'
             },
             random: {
                 label: '隨機',
                 cardLabel: 'Random',
                 shopLabel: '隨機',
-                cost: 7,
-                className: 'category-random',
-                words: ['backpack', 'crayons', 'hospital', 'subway', 'basket', 'ticket']
+                cost: 10,
+                className: 'category-random'
+            },
+            hint: {
+                label: '提示',
+                cardLabel: 'Hint',
+                shopLabel: '提示',
+                cost: 12,
+                className: 'category-hint'
             }
         };
 
-        const wordPowerType = {};
-        Object.keys(powerTypes).forEach(type => {
-            powerTypes[type].words.forEach(word => {
-                wordPowerType[word] = type;
-            });
-        });
-
         let selectedMode = 'classic';
+        let selectedTopicIds = ['starter'];
+        let wordPowerType = {};
         let pendingConfirmResolver = null;
 
         function createPowerInventory() {
@@ -1060,7 +1534,8 @@
                 attack: 0,
                 defense: 0,
                 shuffle: 0,
-                random: 0
+                random: 0,
+                hint: 0
             };
         }
 
@@ -1087,6 +1562,7 @@
                 turnPurchaseUsed: false,
                 turnPurchasedPowers: createPowerInventory(),
                 pendingShufflePlayer: null,
+                hintedCards: new Set(),
                 attackSelection: null
             };
         }
@@ -1094,11 +1570,56 @@
         // 遊戲狀態
         let gameState = createInitialGameState();
 
+        function getSelectedTopics() {
+            const selected = wordTopics.filter(topic => selectedTopicIds.includes(topic.id));
+            return selected.length ? selected : [wordTopics[0]];
+        }
+
+        function getSelectedWordPool() {
+            const seenWords = new Set();
+            return getSelectedTopics()
+                .flatMap(topic => topic.words)
+                .filter(item => {
+                    if (seenWords.has(item.word)) return false;
+                    seenWords.add(item.word);
+                    return true;
+                });
+        }
+
+        function getSelectedTopicSummary() {
+            return getSelectedTopics().map(topic => topic.name).join(' + ');
+        }
+
+        function createRoundWords() {
+            const wordPool = getSelectedWordPool();
+            if (wordPool.length < 30) {
+                showPowerUp('所選主題至少需要 30 個單字');
+                selectedTopicIds = ['starter'];
+                return [...wordTopics[0].words];
+            }
+
+            return shuffleArray(wordPool).slice(0, 30);
+        }
+
+        function assignRoundPowerTypes(roundWords) {
+            const powerSlots = shuffleArray(
+                Object.keys(powerTypes).flatMap(type => Array(5).fill(type))
+            );
+
+            wordPowerType = {};
+            roundWords.forEach((wordData, index) => {
+                wordPowerType[wordData.word] = powerSlots[index];
+            });
+        }
+
         // 初始化遊戲
         function initGame() {
+            const roundWords = createRoundWords();
+            assignRoundPowerTypes(roundWords);
+
             // 創建60張卡片（30組*2）
             gameState.cards = [];
-            allWords.forEach((wordData, index) => {
+            roundWords.forEach((wordData, index) => {
                 gameState.cards.push(
                     { id: index * 2, wordData, matchedBy: null },
                     { id: index * 2 + 1, wordData, matchedBy: null }
@@ -1167,6 +1688,14 @@
             });
         }
 
+        function getWordVisual(wordData) {
+            if (wordData.image) {
+                return `<img src="${wordData.image}" alt="${wordData.chinese || wordData.word}">`;
+            }
+
+            return wordData.emoji;
+        }
+
         // 創建卡片元素
         function createCardElement(card, index) {
             const cardDiv = document.createElement('div');
@@ -1179,6 +1708,10 @@
 
             if (isAttackTarget(index)) {
                 cardDiv.classList.add('attack-selectable');
+            }
+
+            if (gameState.hintedCards.has(index)) {
+                cardDiv.classList.add('hint-highlight');
             }
 
             const isGolden = gameState.goldenCards.has(index);
@@ -1198,7 +1731,7 @@
                 </div>
                 <div class="card-face card-back ${isGolden ? 'golden' : ''} ${matchedClass}">
                     <div class="card-content">
-                        <div class="card-emoji">${card.wordData.emoji}</div>
+                        <div class="card-emoji">${getWordVisual(card.wordData)}</div>
                         <div class="card-word">${card.wordData.word}</div>
                         ${categoryLabel}
                         ${isGolden ? '<div style="margin-top: 5px; font-weight: bold; color: #b8860b;">⭐ x2</div>' : ''}
@@ -1231,6 +1764,7 @@
 
             // 翻牌
             cardElement.classList.add('flipped');
+            card.seen = true;
             gameState.flippedCards.push(index);
 
             // 播放發音
@@ -1452,6 +1986,23 @@
             return gameState.cards.some(card => card.matchedBy === opponent);
         }
 
+        function findHintPair() {
+            const seenOpenCards = gameState.cards
+                .map((card, index) => ({ card, index }))
+                .filter(({ card }) => card.matchedBy === null && card.seen);
+            const firstSeenByWord = new Map();
+
+            for (const item of seenOpenCards) {
+                const word = item.card.wordData.word;
+                if (firstSeenByWord.has(word)) {
+                    return [firstSeenByWord.get(word), item.index];
+                }
+                firstSeenByWord.set(word, item.index);
+            }
+
+            return null;
+        }
+
         function canBuyPower(type, player = gameState.currentPlayer) {
             const power = powerTypes[type];
             return gameState.mode === 'territory' &&
@@ -1472,7 +2023,8 @@
 
             return availableCount > 0 &&
                 canUseTurnPower() &&
-                (type !== 'attack' || hasOpponentLand(player));
+                (type !== 'attack' || hasOpponentLand(player)) &&
+                (type !== 'hint' || findHintPair());
         }
 
         function getPowerUnavailableReason(type, player = gameState.currentPlayer, action = 'use') {
@@ -1493,6 +2045,7 @@
             if (gameState.playerPowers[player][type] <= 0) return '尚未擁有';
             if (gameState.turnPowerUsed) return '本回合已使用';
             if (type === 'attack' && !hasOpponentLand(player)) return '沒有對方土地';
+            if (type === 'hint' && !findHintPair()) return '目前沒有可提示的已知組合';
             return '';
         }
 
@@ -1546,19 +2099,25 @@
             icon = '❓',
             title = '確認',
             message = '確定要執行嗎？',
+            alertText = '',
             okText = '確定',
-            cancelText = '取消'
+            cancelText = '取消',
+            variant = ''
         } = {}) {
             const modal = document.getElementById('confirmModal');
+            const content = modal.querySelector('.confirm-content');
             const okButton = document.getElementById('confirmOkBtn');
             const cancelButton = document.getElementById('confirmCancelBtn');
+            const alert = document.getElementById('confirmAlert');
 
             if (pendingConfirmResolver) {
                 pendingConfirmResolver(false);
             }
 
+            content.classList.toggle('is-defense-alert', variant === 'defense');
             document.getElementById('confirmIcon').textContent = icon;
             document.getElementById('confirmTitle').textContent = title;
+            alert.textContent = alertText;
             document.getElementById('confirmMessage').textContent = message;
             okButton.textContent = okText;
             cancelButton.textContent = cancelText;
@@ -1569,6 +2128,8 @@
 
                 const finish = confirmed => {
                     modal.style.display = 'none';
+                    content.classList.remove('is-defense-alert');
+                    alert.textContent = '';
                     okButton.onclick = null;
                     cancelButton.onclick = null;
                     pendingConfirmResolver = null;
@@ -1649,8 +2210,8 @@
 
         function applyPowerEffect(type, player) {
             if (type === 'bonus') {
-                setScore(player, getScore(player) + 5);
-                showPowerUp(`玩家 ${player} 加分 +5`);
+                setScore(player, getScore(player) + 10);
+                showPowerUp(`玩家 ${player} 加分 +10`);
                 return;
             }
 
@@ -1674,6 +2235,23 @@
                 return;
             }
 
+            if (type === 'hint') {
+                const pair = findHintPair();
+                if (!pair) {
+                    showPowerUp('目前沒有可提示的已知組合');
+                    return;
+                }
+
+                gameState.hintedCards = new Set(pair);
+                renderBoard();
+                showPowerUp(`提示：第 ${pair[0] + 1} 格和第 ${pair[1] + 1} 格可以湊成一組`);
+                setTimeout(() => {
+                    gameState.hintedCards.clear();
+                    renderBoard();
+                }, 3000);
+                return;
+            }
+
             if (type === 'attack') {
                 startAttackSelection(player);
             }
@@ -1687,7 +2265,9 @@
             const shuffledCards = shuffleArray(targetIndexes.map(index => gameState.cards[index]));
             targetIndexes.forEach((index, slot) => {
                 gameState.cards[index] = shuffledCards[slot];
+                gameState.cards[index].seen = false;
             });
+            gameState.hintedCards.clear();
 
             renderBoard();
         }
@@ -1726,12 +2306,15 @@
 
             if (gameState.playerPowers[defender].defense > 0) {
                 gameState.attackSelection.confirming = true;
+                updateUI();
                 const shouldDefend = await showConfirmDialog({
                     icon: '🛡️',
-                    title: '使用防守卡',
-                    message: `玩家 ${defender} 要使用防守卡抵擋搶地嗎？`,
-                    okText: '防守',
-                    cancelText: '不使用'
+                    title: `玩家 ${defender} 決定防守`,
+                    alertText: `現在請玩家 ${defender} 操作，不是玩家 ${attacker}。`,
+                    message: `玩家 ${attacker} 正在搶你的土地。要使用 1 張防守卡擋下來嗎？`,
+                    okText: '使用防守卡',
+                    cancelText: '不防守',
+                    variant: 'defense'
                 });
                 if (!gameState.attackSelection || gameState.attackSelection.attacker !== attacker) return;
                 gameState.attackSelection.confirming = false;
@@ -1780,6 +2363,10 @@
             document.getElementById('territoryPanel').classList.toggle('active', isTerritoryMode);
             document.getElementById('classicModeBtn').classList.toggle('active', gameState.mode === 'classic');
             document.getElementById('territoryModeBtn').classList.toggle('active', isTerritoryMode);
+            const currentTopicLabel = document.getElementById('currentTopicLabel');
+            if (currentTopicLabel) {
+                currentTopicLabel.textContent = `目前：${getSelectedTopicSummary()}`;
+            }
 
             if (isTerritoryMode) {
                 document.getElementById('player1Land').textContent = getLandCount(1);
@@ -1795,7 +2382,11 @@
             // 更新回合指示
             const turnIndicator = document.getElementById('turnIndicator');
             if (gameState.attackSelection) {
-                turnIndicator.textContent = `玩家 ${gameState.attackSelection.attacker} 選擇要搶佔的土地`;
+                const attacker = gameState.attackSelection.attacker;
+                const defender = attacker === 1 ? 2 : 1;
+                turnIndicator.textContent = gameState.attackSelection.confirming ?
+                    `⚠️ 玩家 ${defender} 決定是否防守` :
+                    `玩家 ${attacker} 選擇要搶佔的土地`;
             } else {
                 turnIndicator.textContent = gameState.currentPlayer === 1 ?
                     '🎮 玩家 1 的回合' : '🎯 玩家 2 的回合';
@@ -1923,32 +2514,103 @@
             document.getElementById('helpModal').style.display = 'none';
         }
 
+        function renderWordBank() {
+            const container = document.getElementById('wordBankList');
+            if (!container) return;
 
-        // 防止雙擊縮放（平板優化）
-        document.addEventListener('touchstart', function (event) {
-            if (event.touches.length > 1) {
-                event.preventDefault();
-            }
-        });
+            container.innerHTML = wordTopics.map(bank => `
+                <section class="word-bank-section">
+                    <h3>${bank.name}（${bank.words.length} 個）</h3>
+                    <p class="word-bank-summary">${bank.description}</p>
+                    <div class="word-bank-grid">
+                        ${bank.words.map(item => `
+                            <div class="word-bank-card">
+                                <div class="word-bank-visual">${getWordVisual(item)}</div>
+                                <div>
+                                    <div class="word-bank-word">${item.word}</div>
+                                    <div class="word-bank-chinese">${item.chinese}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
+            `).join('');
+        }
 
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function (event) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
+        function renderWordTopicChoices() {
+            const container = document.getElementById('wordTopicChoices');
+            if (!container) return;
+
+            container.innerHTML = wordTopics.map(topic => `
+                <label class="word-topic-choice">
+                    <input type="checkbox" value="${topic.id}" ${selectedTopicIds.includes(topic.id) ? 'checked' : ''}>
+                    <span>
+                        <span class="word-topic-name">${topic.name}</span>
+                        <span class="word-topic-meta">${topic.words.length} 個單字</span>
+                    </span>
+                </label>
+            `).join('');
+        }
+
+        function showWordBank() {
+            renderWordTopicChoices();
+            renderWordBank();
+            document.getElementById('wordBankModal').style.display = 'flex';
+        }
+
+        function closeWordBank() {
+            document.getElementById('wordBankModal').style.display = 'none';
+        }
+
+        async function applySelectedWordTopics() {
+            const checkedIds = Array.from(document.querySelectorAll('#wordTopicChoices input:checked'))
+                .map(input => input.value);
+            const nextIds = checkedIds.length ? checkedIds : ['starter'];
+            const wordCount = wordTopics
+                .filter(topic => nextIds.includes(topic.id))
+                .flatMap(topic => topic.words)
+                .filter((item, index, array) => array.findIndex(other => other.word === item.word) === index)
+                .length;
+
+            if (wordCount < 30) {
+                showPowerUp('至少要選到 30 個單字');
+                return;
             }
-            lastTouchEnd = now;
-        }, false);
+
+            const sameSelection = selectedTopicIds.length === nextIds.length &&
+                selectedTopicIds.every(id => nextIds.includes(id));
+            if (sameSelection) {
+                closeWordBank();
+                return;
+            }
+
+            const topicNames = wordTopics
+                .filter(topic => nextIds.includes(topic.id))
+                .map(topic => topic.name)
+                .join(' + ');
+            const confirmed = await showConfirmDialog({
+                icon: '📚',
+                title: '更換單字',
+                message: `套用「${topicNames}」會重新開始目前這局，要繼續嗎？`,
+                okText: '套用'
+            });
+            if (!confirmed) return;
+
+            selectedTopicIds = nextIds;
+            closeWordBank();
+            startNewGame();
+            renderWordTopicChoices();
+            renderWordBank();
+        }
 
         // 初始化
         window.onload = function () {
             initGame();
+            renderWordTopicChoices();
+            renderWordBank();
 
             // 防止右鍵選單
             document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-            // 防止文字選取
-            document.addEventListener('selectstart', (e) => e.preventDefault());
         };
     </script>
 </body>
