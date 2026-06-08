@@ -1314,9 +1314,9 @@
                 <p><strong>模式：</strong></p>
                 <p>經典模式：照原本規則比分數。</p>
                 <p>土地競爭：配對成功會佔領土地，土地數是主要勝負條件；也會依卡片類型獲得功能卡，分數可用來購買功能卡。</p>
-                <p><strong>土地競爭每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</strong></p>
-                <p>加分卡不能購買，只能透過土地畫面翻到或隨機卡抽到取得；使用後可加 10 分。</p>
-                <p>提示卡可以翻到也可以花 12 分購買；使用後會提示已經看過、目前未佔領的可配對組合，若沒有可提示組合則不消耗卡。</p>
+                <p><strong>土地競爭開局雙方各有 1 張防守卡；每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</strong></p>
+                <p>加分卡不能購買，只能透過土地畫面翻到取得；使用後可加 10 分。隨機卡抽到加分會直接加 10 分。</p>
+                <p>提示卡可以翻到也可以花 30 分購買；使用後會提示已經看過、目前未佔領的可配對組合，若沒有可提示組合則不消耗卡。</p>
                 <p>攻擊成功時只能搶一塊對方土地；若對方沒有防守，會獲得該土地對應的一張功能卡，但攻下攻擊類土地不會再獲得攻擊卡。</p>
                 <p>重組卡會在使用者本回合翻牌結束後，把剩下還沒打開、還沒佔領的牌重新洗牌。</p>
                 <br>
@@ -1624,7 +1624,7 @@
                 label: '攻擊',
                 cardLabel: 'Attack',
                 shopLabel: '攻擊',
-                cost: 10,
+                cost: 15,
                 className: 'category-attack'
             },
             defense: {
@@ -1652,7 +1652,7 @@
                 label: '提示',
                 cardLabel: 'Hint',
                 shopLabel: '提示',
-                cost: 12,
+                cost: 30,
                 className: 'category-hint'
             }
         };
@@ -1661,6 +1661,7 @@
         let selectedTopicIds = ['starter'];
         let wordPowerType = {};
         let pendingConfirmResolver = null;
+        let hintClearTimeout = null;
 
         function createPowerInventory() {
             return {
@@ -1671,6 +1672,14 @@
                 random: 0,
                 hint: 0
             };
+        }
+
+        function createStartingPowerInventory(mode = selectedMode) {
+            const inventory = createPowerInventory();
+            if (mode === 'territory') {
+                inventory.defense = 1;
+            }
+            return inventory;
         }
 
         function createInitialGameState(mode = selectedMode, soundEnabled = true) {
@@ -1689,8 +1698,8 @@
                 gameActive: true,
                 mode,
                 playerPowers: {
-                    1: createPowerInventory(),
-                    2: createPowerInventory()
+                    1: createStartingPowerInventory(mode),
+                    2: createStartingPowerInventory(mode)
                 },
                 turnPowerUsed: false,
                 turnPurchaseUsed: false,
@@ -1935,6 +1944,10 @@
             cardDiv.className = 'card';
             cardDiv.dataset.index = index;
 
+            if (card.matchedBy || gameState.flippedCards.includes(index)) {
+                cardDiv.classList.add('flipped');
+            }
+
             if (card.matchedBy) {
                 cardDiv.classList.add('flipped', 'matched');
             }
@@ -2050,8 +2063,10 @@
 
                 if (shouldReshuffle) {
                     gameState.pendingShufflePlayer = null;
-                    reshuffleUnmatchedCards();
-                    showPowerUp('重組卡發動：剩餘未佔領卡牌已重新打亂');
+                    const movedCount = reshuffleUnmatchedCards();
+                    showPowerUp(movedCount > 0 ?
+                        `重組卡發動：${movedCount} 張未佔領卡牌已換位置` :
+                        '重組卡發動：剩餘卡牌已重新整理');
                 }
 
                 // 總是換邊
@@ -2127,13 +2142,13 @@
 
         // 處理失敗配對
         function handleFailedMatch(...indices) { // (使用 ...indices 接受任意數量)
-            // 翻回卡片
+            // 先讓 checkMatch 完成切換玩家，再翻回未配對牌，避免畫面停在舊玩家回合。
             setTimeout(() => {
                 indices.forEach(index => {
                     const cardEl = document.querySelector(`[data-index="${index}"]`);
                     if (cardEl) cardEl.classList.remove('flipped');
                 });
-            }, 500);
+            }, 650);
 
             // 換玩家 // 移除
             // gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1; // 移除
@@ -2173,6 +2188,19 @@
 
             gameState.playerPowers[player][type]++;
             showPowerUp(`玩家 ${player} ${messagePrefix} ${power.shopLabel} 卡`);
+            updateUI();
+        }
+
+        function clearHintHighlights(shouldRender = false) {
+            if (hintClearTimeout) {
+                clearTimeout(hintClearTimeout);
+                hintClearTimeout = null;
+            }
+
+            if (gameState.hintedCards.size > 0) {
+                gameState.hintedCards.clear();
+                if (shouldRender) renderBoard();
+            }
         }
 
         function setMode(mode) {
@@ -2504,10 +2532,27 @@
             }
 
             if (type === 'random') {
-                const randomTypes = ['bonus', 'attack', 'defense', 'shuffle'];
+                const randomTypes = ['bonus', 'attack', 'defense', 'shuffle', 'hint'];
                 const picked = randomTypes[Math.floor(Math.random() * randomTypes.length)];
-                showPowerUp(`隨機發動：${powerTypes[picked].label}`);
-                setTimeout(() => applyPowerEffect(picked, player), 350);
+
+                if (picked === 'bonus') {
+                    showPowerUp('隨機發動：加分 +10');
+                    setScore(player, getScore(player) + 10);
+                    updateUI();
+                    return;
+                }
+
+                if (picked === 'attack') {
+                    if (hasOpponentLand(player)) {
+                        showPowerUp('隨機發動：攻擊');
+                        startAttackSelection(player);
+                    } else {
+                        awardPowerCard(picked, player, '隨機抽到');
+                    }
+                    return;
+                }
+
+                awardPowerCard(picked, player, '隨機抽到');
                 return;
             }
 
@@ -2518,11 +2563,13 @@
                     return;
                 }
 
+                clearHintHighlights();
                 gameState.hintedCards = new Set(pair);
                 renderBoard();
                 showPowerUp(`提示：第 ${pair[0] + 1} 格和第 ${pair[1] + 1} 格可以湊成一組`);
-                setTimeout(() => {
-                    gameState.hintedCards.clear();
+                hintClearTimeout = setTimeout(() => {
+                    hintClearTimeout = null;
+                    clearHintHighlights();
                     renderBoard();
                 }, 3000);
                 return;
@@ -2538,14 +2585,38 @@
                 .map((card, index) => card.matchedBy === null ? index : null)
                 .filter(index => index !== null);
 
-            const shuffledCards = shuffleArray(targetIndexes.map(index => gameState.cards[index]));
+            const originalCards = targetIndexes.map(index => gameState.cards[index]);
+            let shuffledCards = shuffleArray(originalCards);
+            let attempts = 0;
+
+            while (
+                attempts < 8 &&
+                shuffledCards.every((card, slot) => card.wordData.word === originalCards[slot].wordData.word)
+            ) {
+                shuffledCards = shuffleArray(originalCards);
+                attempts++;
+            }
+
+            const canVisiblyMove = originalCards.some(card => card.wordData.word !== originalCards[0].wordData.word);
+            if (
+                canVisiblyMove &&
+                shuffledCards.every((card, slot) => card.wordData.word === originalCards[slot].wordData.word)
+            ) {
+                shuffledCards = [...originalCards.slice(1), originalCards[0]];
+            }
+
+            const movedCount = shuffledCards.filter((card, slot) =>
+                card.wordData.word !== originalCards[slot].wordData.word
+            ).length;
+
             targetIndexes.forEach((index, slot) => {
                 gameState.cards[index] = shuffledCards[slot];
                 gameState.cards[index].seen = false;
             });
-            gameState.hintedCards.clear();
+            clearHintHighlights();
 
             renderBoard();
+            return movedCount;
         }
 
         function startAttackSelection(player) {
@@ -2745,6 +2816,7 @@
             const soundEnabled = gameState.soundEnabled;
             const existingPins = preservePins && gameState.pinLocked ? { ...gameState.playerPins } : null;
 
+            clearHintHighlights();
             gameState = createInitialGameState(mode, soundEnabled);
             if (mode === 'territory' && existingPins) {
                 gameState.playerPins = existingPins;
