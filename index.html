@@ -623,6 +623,10 @@
                 border-radius: 18px;
             }
 
+            .pin-setup-grid {
+                grid-template-columns: 1fr;
+            }
+
             .winner-announcement {
                 font-size: 2em;
             }
@@ -1079,6 +1083,110 @@
             margin-bottom: 22px;
         }
 
+        .pin-setup-content {
+            max-width: 640px;
+        }
+
+        .pin-setup-summary {
+            color: #444;
+            font-size: 1.08em;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .pin-setup-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
+            max-width: 380px;
+            margin: 0 auto 20px;
+        }
+
+        .pin-player-card {
+            border-radius: 18px;
+            padding: 16px;
+            color: white;
+            text-align: left;
+        }
+
+        .pin-player-card.player1 {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+        }
+
+        .pin-player-card.player2 {
+            background: linear-gradient(135deg, #4ECDC4, #6EE0D8);
+        }
+
+        .pin-player-card label {
+            display: block;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .pin-input,
+        .confirm-pin-input {
+            width: 100%;
+            border: 3px solid rgba(0, 0, 0, 0.12);
+            border-radius: 16px;
+            padding: 12px 14px;
+            font-size: 1.6em;
+            font-weight: bold;
+            letter-spacing: 0;
+            text-align: center;
+            background: white;
+            color: #222;
+        }
+
+        .pin-input:focus,
+        .confirm-pin-input:focus {
+            outline: none;
+            border-color: #5b86e5;
+            box-shadow: 0 0 0 4px rgba(91, 134, 229, 0.18);
+        }
+
+        .pin-error,
+        .confirm-pin-error {
+            min-height: 1.3em;
+            margin-top: 8px;
+            color: #b71c1c;
+            font-size: 0.95em;
+            font-weight: bold;
+        }
+
+        .pin-player-card .pin-error {
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+        }
+
+        .confirm-pin-lock {
+            display: none;
+            margin: -8px 0 18px;
+            padding: 14px;
+            border-radius: 16px;
+            background: #fff8e1;
+            border: 2px solid #ffcc80;
+        }
+
+        .confirm-pin-lock.active {
+            display: block;
+        }
+
+        .confirm-pin-label {
+            display: block;
+            color: #6d4c00;
+            font-size: 1.05em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .confirm-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+            transform: none;
+            box-shadow: none;
+        }
+
         .confirm-actions {
             display: flex;
             justify-content: center;
@@ -1266,6 +1374,26 @@
         </div>
     </div>
 
+    <!-- 玩家密碼 Modal -->
+    <div class="game-over-modal" id="playerPinModal">
+        <div class="game-over-content pin-setup-content">
+            <div class="trophy">🔐</div>
+            <div class="winner-announcement" id="playerPinTitle" style="font-size: 2.5em; margin-bottom: 14px;">設定玩家密碼</div>
+            <div class="pin-setup-summary" id="playerPinSummary">
+                請玩家 1 輸入自己的 4 位數密碼，按確定後再把平板或手機交給玩家 2。
+            </div>
+            <div class="pin-setup-grid">
+                <div class="pin-player-card player1" id="activePinCard">
+                    <label for="activePlayerPinInput" id="activePlayerPinLabel">🎮 玩家 1 密碼</label>
+                    <input class="pin-input" id="activePlayerPinInput" type="password" inputmode="numeric" pattern="[0-9]*"
+                        maxlength="4" autocomplete="off" oninput="handlePlayerPinInput(this)">
+                    <div class="pin-error" id="activePlayerPinError"></div>
+                </div>
+            </div>
+            <button class="control-btn" id="playerPinConfirmBtn" onclick="saveCurrentPlayerPin()" disabled>確定</button>
+        </div>
+    </div>
+
     <!-- 確認 Modal -->
     <div class="game-over-modal" id="confirmModal">
         <div class="confirm-content">
@@ -1273,6 +1401,12 @@
             <div class="confirm-title" id="confirmTitle">確認</div>
             <div class="confirm-alert" id="confirmAlert"></div>
             <div class="confirm-message" id="confirmMessage">確定要執行嗎？</div>
+            <div class="confirm-pin-lock" id="confirmPinLock">
+                <label class="confirm-pin-label" for="confirmPinInput" id="confirmPinLabel">請輸入密碼</label>
+                <input class="confirm-pin-input" id="confirmPinInput" type="password" inputmode="numeric"
+                    pattern="[0-9]*" maxlength="4" autocomplete="off">
+                <div class="confirm-pin-error" id="confirmPinError"></div>
+            </div>
             <div class="confirm-actions">
                 <button class="confirm-btn confirm-btn-cancel" id="confirmCancelBtn">取消</button>
                 <button class="confirm-btn confirm-btn-ok" id="confirmOkBtn">確定</button>
@@ -1563,12 +1697,111 @@
                 turnPurchasedPowers: createPowerInventory(),
                 pendingShufflePlayer: null,
                 hintedCards: new Set(),
-                attackSelection: null
+                attackSelection: null,
+                playerPins: {
+                    1: '',
+                    2: ''
+                },
+                pinLocked: false
             };
         }
 
         // 遊戲狀態
         let gameState = createInitialGameState();
+        let pendingPinSetup = null;
+
+        function isFourDigitPin(value) {
+            return /^\d{4}$/.test(value);
+        }
+
+        function sanitizePinValue(value) {
+            return value.replace(/\D/g, '').slice(0, 4);
+        }
+
+        function handlePlayerPinInput(input) {
+            input.value = sanitizePinValue(input.value);
+            validatePlayerPin();
+        }
+
+        function validatePlayerPin(showErrors = false) {
+            const pinInput = document.getElementById('activePlayerPinInput');
+            const pinError = document.getElementById('activePlayerPinError');
+            const confirmButton = document.getElementById('playerPinConfirmBtn');
+            if (!pinInput || !pinError || !confirmButton) return false;
+
+            const valid = isFourDigitPin(pinInput.value);
+            pinError.textContent = !valid && (showErrors || pinInput.value) ? '請輸入 4 位數字' : '';
+            confirmButton.disabled = !valid;
+            return valid;
+        }
+
+        function setPinSetupStep(player) {
+            if (!pendingPinSetup) return;
+            pendingPinSetup.player = player;
+
+            const title = document.getElementById('playerPinTitle');
+            const summary = document.getElementById('playerPinSummary');
+            const card = document.getElementById('activePinCard');
+            const label = document.getElementById('activePlayerPinLabel');
+            const pinInput = document.getElementById('activePlayerPinInput');
+            const pinError = document.getElementById('activePlayerPinError');
+            const confirmButton = document.getElementById('playerPinConfirmBtn');
+            const playerIcon = player === 1 ? '🎮' : '🎯';
+
+            title.textContent = `玩家 ${player} 設定密碼`;
+            summary.textContent = player === 1 ?
+                '請玩家 1 輸入自己的 4 位數密碼，按確定後再把平板或手機交給玩家 2。' :
+                '請玩家 2 輸入自己的 4 位數密碼。按確定後，這一局的密碼就會鎖定。';
+            card.classList.toggle('player1', player === 1);
+            card.classList.toggle('player2', player === 2);
+            label.textContent = `${playerIcon} 玩家 ${player} 密碼`;
+            pinInput.value = '';
+            pinError.textContent = '';
+            confirmButton.textContent = player === 1 ? '確定' : '確定開始';
+            confirmButton.disabled = true;
+            setTimeout(() => pinInput.focus(), 0);
+        }
+
+        function showPlayerPinSetup(mode = selectedMode) {
+            selectedMode = mode;
+            const modal = document.getElementById('playerPinModal');
+            pendingPinSetup = {
+                mode,
+                player: 1,
+                pins: {
+                    1: '',
+                    2: ''
+                }
+            };
+            modal.style.display = 'flex';
+            setPinSetupStep(1);
+        }
+
+        function saveCurrentPlayerPin() {
+            if (!pendingPinSetup || !validatePlayerPin(true)) return;
+
+            const pinInput = document.getElementById('activePlayerPinInput');
+            const currentPlayer = pendingPinSetup.player;
+            pendingPinSetup.pins[currentPlayer] = pinInput.value;
+
+            if (currentPlayer === 1) {
+                setPinSetupStep(2);
+                return;
+            }
+
+            const soundEnabled = gameState.soundEnabled;
+            selectedMode = pendingPinSetup.mode;
+            gameState = createInitialGameState(pendingPinSetup.mode, soundEnabled);
+            gameState.playerPins = {
+                1: pendingPinSetup.pins[1],
+                2: pendingPinSetup.pins[2]
+            };
+            gameState.pinLocked = true;
+            pendingPinSetup = null;
+
+            document.getElementById('playerPinModal').style.display = 'none';
+            initGame();
+        }
 
         function getSelectedTopics() {
             const selected = wordTopics.filter(topic => selectedTopicIds.includes(topic.id));
@@ -2102,17 +2335,26 @@
             alertText = '',
             okText = '確定',
             cancelText = '取消',
-            variant = ''
+            variant = '',
+            pinPlayer = null,
+            pinMessage = ''
         } = {}) {
             const modal = document.getElementById('confirmModal');
             const content = modal.querySelector('.confirm-content');
             const okButton = document.getElementById('confirmOkBtn');
             const cancelButton = document.getElementById('confirmCancelBtn');
             const alert = document.getElementById('confirmAlert');
+            const pinLock = document.getElementById('confirmPinLock');
+            const pinLabel = document.getElementById('confirmPinLabel');
+            const pinInput = document.getElementById('confirmPinInput');
+            const pinError = document.getElementById('confirmPinError');
 
             if (pendingConfirmResolver) {
                 pendingConfirmResolver(false);
             }
+
+            const requiredPin = pinPlayer && gameState.playerPins ? gameState.playerPins[pinPlayer] : '';
+            const requiresPin = isFourDigitPin(requiredPin);
 
             content.classList.toggle('is-defense-alert', variant === 'defense');
             document.getElementById('confirmIcon').textContent = icon;
@@ -2121,6 +2363,30 @@
             document.getElementById('confirmMessage').textContent = message;
             okButton.textContent = okText;
             cancelButton.textContent = cancelText;
+            okButton.disabled = requiresPin;
+            cancelButton.disabled = requiresPin;
+            pinLock.classList.toggle('active', requiresPin);
+            pinLabel.textContent = pinMessage || `請輸入玩家 ${pinPlayer} 的 4 位數密碼`;
+            pinInput.value = '';
+            pinError.textContent = requiresPin ? '輸入正確後才可以選擇' : '';
+            pinInput.oninput = null;
+
+            if (requiresPin) {
+                pinInput.oninput = () => {
+                    pinInput.value = sanitizePinValue(pinInput.value);
+                    const unlocked = pinInput.value === requiredPin;
+                    okButton.disabled = !unlocked;
+                    cancelButton.disabled = !unlocked;
+                    if (unlocked) {
+                        pinError.textContent = '';
+                    } else if (pinInput.value.length === 4) {
+                        pinError.textContent = '密碼不正確';
+                    } else {
+                        pinError.textContent = '輸入正確後才可以選擇';
+                    }
+                };
+            }
+
             modal.style.display = 'flex';
 
             return new Promise(resolve => {
@@ -2130,6 +2396,12 @@
                     modal.style.display = 'none';
                     content.classList.remove('is-defense-alert');
                     alert.textContent = '';
+                    pinLock.classList.remove('active');
+                    pinInput.value = '';
+                    pinInput.oninput = null;
+                    pinError.textContent = '';
+                    okButton.disabled = false;
+                    cancelButton.disabled = false;
                     okButton.onclick = null;
                     cancelButton.onclick = null;
                     pendingConfirmResolver = null;
@@ -2138,7 +2410,11 @@
 
                 okButton.onclick = () => finish(true);
                 cancelButton.onclick = () => finish(false);
-                okButton.focus();
+                if (requiresPin) {
+                    pinInput.focus();
+                } else {
+                    okButton.focus();
+                }
             });
         }
 
@@ -2314,7 +2590,9 @@
                     message: `玩家 ${attacker} 正在搶你的土地。要使用 1 張防守卡擋下來嗎？`,
                     okText: '使用防守卡',
                     cancelText: '不防守',
-                    variant: 'defense'
+                    variant: 'defense',
+                    pinPlayer: defender,
+                    pinMessage: `請玩家 ${defender} 輸入自己的 4 位數密碼`
                 });
                 if (!gameState.attackSelection || gameState.attackSelection.attacker !== attacker) return;
                 gameState.attackSelection.confirming = false;
@@ -2462,11 +2740,28 @@
         }
 
         // 開始新遊戲
-        function startNewGame(mode = selectedMode) {
+        function startGame(mode = selectedMode, { preservePins = false } = {}) {
             selectedMode = mode;
-            gameState = createInitialGameState(mode, gameState.soundEnabled);
+            const soundEnabled = gameState.soundEnabled;
+            const existingPins = preservePins && gameState.pinLocked ? { ...gameState.playerPins } : null;
+
+            gameState = createInitialGameState(mode, soundEnabled);
+            if (mode === 'territory' && existingPins) {
+                gameState.playerPins = existingPins;
+                gameState.pinLocked = true;
+            }
 
             initGame();
+        }
+
+        function startNewGame(mode = selectedMode, options = {}) {
+            selectedMode = mode;
+            if (mode === 'territory' && !options.preservePins) {
+                showPlayerPinSetup(mode);
+                return;
+            }
+
+            startGame(mode, options);
         }
 
         async function confirmNewGame() {
@@ -2598,16 +2893,16 @@
 
             selectedTopicIds = nextIds;
             closeWordBank();
-            startNewGame();
+            startNewGame(selectedMode, { preservePins: true });
             renderWordTopicChoices();
             renderWordBank();
         }
 
         // 初始化
         window.onload = function () {
-            initGame();
             renderWordTopicChoices();
             renderWordBank();
+            startGame(selectedMode);
 
             // 防止右鍵選單
             document.addEventListener('contextmenu', (e) => e.preventDefault());
