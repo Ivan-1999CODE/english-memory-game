@@ -1377,20 +1377,37 @@
     <!-- 玩家密碼 Modal -->
     <div class="game-over-modal" id="playerPinModal">
         <div class="game-over-content pin-setup-content">
-            <div class="trophy">🔐</div>
-            <div class="winner-announcement" id="playerPinTitle" style="font-size: 2.5em; margin-bottom: 14px;">設定玩家密碼</div>
-            <div class="pin-setup-summary" id="playerPinSummary">
-                請玩家 1 輸入自己的 4 位數密碼，按確定後再把平板或手機交給玩家 2。
-            </div>
-            <div class="pin-setup-grid">
-                <div class="pin-player-card player1" id="activePinCard">
-                    <label for="activePlayerPinInput" id="activePlayerPinLabel">🎮 玩家 1 密碼</label>
-                    <input class="pin-input" id="activePlayerPinInput" type="password" inputmode="numeric" pattern="[0-9]*"
-                        maxlength="4" autocomplete="off" oninput="handlePlayerPinInput(this)">
-                    <div class="pin-error" id="activePlayerPinError"></div>
+            <!-- 步驟 1：章節選擇（不需要密碼）-->
+            <div id="pinSetupStep1">
+                <div class="trophy">📚</div>
+                <div class="winner-announcement" style="font-size: 2.5em; margin-bottom: 14px;">選擇章節</div>
+                <div class="pin-setup-summary">選擇要玩的單字章節（可複選，需至少 30 個單字）</div>
+                <div class="word-topic-choices" id="pinSetupTopicChoices"></div>
+                <div class="confirm-actions" style="margin-top: 16px;">
+                    <button class="confirm-btn confirm-btn-cancel" onclick="cancelTerritorySetup()">取消</button>
+                    <button class="confirm-btn confirm-btn-ok" onclick="goToPinSetupStep2()">下一步 →</button>
                 </div>
             </div>
-            <button class="control-btn" id="playerPinConfirmBtn" onclick="saveCurrentPlayerPin()" disabled>確定</button>
+            <!-- 步驟 2：設定玩家密碼 -->
+            <div id="pinSetupStep2" style="display:none">
+                <div class="trophy">🔐</div>
+                <div class="winner-announcement" id="playerPinTitle" style="font-size: 2.5em; margin-bottom: 14px;">設定玩家密碼</div>
+                <div class="pin-setup-summary" id="playerPinSummary">
+                    請玩家 1 輸入自己的 4 位數密碼，按確定後再把平板或手機交給玩家 2。
+                </div>
+                <div class="pin-setup-grid">
+                    <div class="pin-player-card player1" id="activePinCard">
+                        <label for="activePlayerPinInput" id="activePlayerPinLabel">🎮 玩家 1 密碼</label>
+                        <input class="pin-input" id="activePlayerPinInput" type="password" inputmode="numeric" pattern="[0-9]*"
+                            maxlength="4" autocomplete="off" oninput="handlePlayerPinInput(this)">
+                        <div class="pin-error" id="activePlayerPinError"></div>
+                    </div>
+                </div>
+                <div class="confirm-actions">
+                    <button class="confirm-btn confirm-btn-cancel" onclick="goToPinSetupStep1()">← 返回</button>
+                    <button class="confirm-btn confirm-btn-ok" id="playerPinConfirmBtn" onclick="saveCurrentPlayerPin()" disabled>確定</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1718,6 +1735,7 @@
         // 遊戲狀態
         let gameState = createInitialGameState();
         let pendingPinSetup = null;
+        let territorySetupPreviousMode = 'classic';
 
         function isFourDigitPin(value) {
             return /^\d{4}$/.test(value);
@@ -1772,6 +1790,7 @@
         }
 
         function showPlayerPinSetup(mode = selectedMode) {
+            territorySetupPreviousMode = gameState.mode;
             selectedMode = mode;
             const modal = document.getElementById('playerPinModal');
             pendingPinSetup = {
@@ -1782,8 +1801,62 @@
                     2: ''
                 }
             };
+            renderPinSetupTopicChoices();
+            document.getElementById('pinSetupStep1').style.display = '';
+            document.getElementById('pinSetupStep2').style.display = 'none';
             modal.style.display = 'flex';
+        }
+
+        function renderPinSetupTopicChoices() {
+            const container = document.getElementById('pinSetupTopicChoices');
+            if (!container) return;
+            container.innerHTML = wordTopics.map(topic => `
+                <label class="word-topic-choice">
+                    <input type="checkbox" value="${topic.id}" ${selectedTopicIds.includes(topic.id) ? 'checked' : ''}>
+                    <span>
+                        <span class="word-topic-name">${topic.name}</span>
+                        <span class="word-topic-meta">${topic.words.length} 個單字</span>
+                    </span>
+                </label>
+            `).join('');
+        }
+
+        function goToPinSetupStep2() {
+            const checkedIds = Array.from(document.querySelectorAll('#pinSetupTopicChoices input:checked'))
+                .map(input => input.value);
+            const nextIds = checkedIds.length ? checkedIds : ['starter'];
+            const wordCount = wordTopics
+                .filter(topic => nextIds.includes(topic.id))
+                .flatMap(topic => topic.words)
+                .filter((item, index, array) => array.findIndex(other => other.word === item.word) === index)
+                .length;
+
+            if (wordCount < 30) {
+                showPowerUp('至少要選到 30 個單字');
+                return;
+            }
+
+            selectedTopicIds = nextIds;
+            document.getElementById('pinSetupStep1').style.display = 'none';
+            document.getElementById('pinSetupStep2').style.display = '';
             setPinSetupStep(1);
+        }
+
+        function goToPinSetupStep1() {
+            if (pendingPinSetup) {
+                pendingPinSetup.player = 1;
+                pendingPinSetup.pins = { 1: '', 2: '' };
+            }
+            renderPinSetupTopicChoices();
+            document.getElementById('pinSetupStep1').style.display = '';
+            document.getElementById('pinSetupStep2').style.display = 'none';
+        }
+
+        function cancelTerritorySetup() {
+            document.getElementById('playerPinModal').style.display = 'none';
+            pendingPinSetup = null;
+            selectedMode = territorySetupPreviousMode;
+            updateUI();
         }
 
         function saveCurrentPlayerPin() {
