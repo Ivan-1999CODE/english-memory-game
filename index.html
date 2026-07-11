@@ -1269,6 +1269,7 @@
             <div class="word-topic-current" id="currentTopicLabel">目前：原始預設</div>
             <button class="control-btn" onclick="confirmNewGame()">🎲 新遊戲</button>
             <button class="control-btn" onclick="showHelp()">❓ 說明</button>
+            <button class="control-btn" onclick="showPinReveal()">🔒 查看密碼</button>
         </div>
 
         <div class="player-section player2" id="player2Section">
@@ -1408,6 +1409,27 @@
                     <button class="confirm-btn confirm-btn-ok" id="playerPinConfirmBtn" onclick="saveCurrentPlayerPin()" disabled>確定</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 查看密碼 Modal -->
+    <div class="game-over-modal" id="pinRevealModal">
+        <div class="game-over-content pin-setup-content">
+            <div class="trophy">🔒</div>
+            <div class="winner-announcement" style="font-size: 2.2em; margin-bottom: 14px;">查看本局密碼</div>
+            <div class="pin-setup-summary" id="pinRevealSummary">
+                請輸入管理者密碼，查看這一局兩位玩家設定的密碼。
+            </div>
+            <div class="pin-setup-grid">
+                <div class="pin-player-card player1">
+                    <label for="pinRevealMasterInput">🔑 管理者密碼</label>
+                    <input class="pin-input" id="pinRevealMasterInput" type="password" inputmode="numeric" pattern="[0-9]*"
+                        maxlength="4" autocomplete="off" oninput="handlePinRevealInput(this)">
+                    <div class="pin-error" id="pinRevealError"></div>
+                </div>
+            </div>
+            <div class="pin-reveal-result" id="pinRevealResult" style="display:none; margin: 10px 0 4px; font-size: 1.4em; line-height: 1.8;"></div>
+            <button class="control-btn" onclick="closePinReveal()">關閉</button>
         </div>
     </div>
 
@@ -2173,6 +2195,71 @@
             initGame();
         }
 
+        function handlePinRevealInput(input) {
+            input.value = sanitizePinValue(input.value);
+            const error = document.getElementById('pinRevealError');
+            const result = document.getElementById('pinRevealResult');
+            if (input.value.length < 4) {
+                error.textContent = '';
+                result.style.display = 'none';
+                return;
+            }
+            if (input.value === '1999') {
+                error.textContent = '';
+                revealPlayerPins();
+            } else {
+                result.style.display = 'none';
+                error.textContent = '管理者密碼不正確';
+            }
+        }
+
+        function revealPlayerPins() {
+            const result = document.getElementById('pinRevealResult');
+            const pins = gameState.playerPins || { 1: '', 2: '' };
+            const hasPins = gameState.pinLocked && (isFourDigitPin(pins[1]) || isFourDigitPin(pins[2]));
+            if (!hasPins) {
+                result.innerHTML = '這一局沒有設定玩家密碼。';
+            } else {
+                const p1 = isFourDigitPin(pins[1]) ? pins[1] : '（未設定）';
+                const p2 = isFourDigitPin(pins[2]) ? pins[2] : '（未設定）';
+                result.innerHTML = `🎮 玩家 1：<strong>${p1}</strong><br>🎯 玩家 2：<strong>${p2}</strong>`;
+            }
+            result.style.display = 'block';
+        }
+
+        function showPinReveal() {
+            const modal = document.getElementById('pinRevealModal');
+            const input = document.getElementById('pinRevealMasterInput');
+            const error = document.getElementById('pinRevealError');
+            const result = document.getElementById('pinRevealResult');
+            input.value = '';
+            error.textContent = '';
+            result.style.display = 'none';
+            result.innerHTML = '';
+            modal.style.display = 'flex';
+            setTimeout(() => input.focus(), 0);
+        }
+
+        function closePinReveal() {
+            const modal = document.getElementById('pinRevealModal');
+            const input = document.getElementById('pinRevealMasterInput');
+            const result = document.getElementById('pinRevealResult');
+            input.value = '';
+            result.style.display = 'none';
+            result.innerHTML = '';
+            modal.style.display = 'none';
+        }
+
+        function promptReturnTablet(attacker) {
+            return showConfirmDialog({
+                icon: '📱',
+                title: '換人操作',
+                message: `攻防結束，請把平板還給玩家 ${attacker}，準備好後按確定繼續。`,
+                okText: `已交給玩家 ${attacker}`,
+                hideCancel: true
+            });
+        }
+
         function getSelectedTopics() {
             const selected = wordTopics.filter(topic => selectedTopicIds.includes(topic.id));
             return selected.length ? selected : [wordTopics[0]];
@@ -2368,6 +2455,8 @@
             if (gameState.flippedCards.length >= 3) return; // (原為 2)
             if (card.matchedBy !== null) return;
             if (gameState.flippedCards.includes(index)) return;
+            // 防連點：卡片仍在翻回動畫中（畫面翻開、但已不在本回合翻牌清單），忽略點擊，避免狀態與畫面不同步
+            if (cardElement.classList.contains('flipped')) return;
 
             // 翻牌
             cardElement.classList.add('flipped');
@@ -2726,7 +2815,8 @@
             cancelText = '取消',
             variant = '',
             pinPlayer = null,
-            pinMessage = ''
+            pinMessage = '',
+            hideCancel = false
         } = {}) {
             const modal = document.getElementById('confirmModal');
             const content = modal.querySelector('.confirm-content');
@@ -2752,6 +2842,7 @@
             document.getElementById('confirmMessage').textContent = message;
             okButton.textContent = okText;
             cancelButton.textContent = cancelText;
+            cancelButton.style.display = hideCancel ? 'none' : '';
             okButton.disabled = requiresPin;
             cancelButton.disabled = requiresPin;
             pinLock.classList.toggle('active', requiresPin);
@@ -2791,6 +2882,7 @@
                     pinError.textContent = '';
                     okButton.disabled = false;
                     cancelButton.disabled = false;
+                    cancelButton.style.display = '';
                     okButton.onclick = null;
                     cancelButton.onclick = null;
                     pendingConfirmResolver = null;
@@ -3012,7 +3104,9 @@
             const defender = attacker === 1 ? 2 : 1;
             const targetCard = gameState.cards[index];
 
-            if (gameState.playerPowers[defender].defense > 0) {
+            const defenderHadTablet = gameState.playerPowers[defender].defense > 0;
+
+            if (defenderHadTablet) {
                 gameState.attackSelection.confirming = true;
                 updateUI();
                 const shouldDefend = await showConfirmDialog({
@@ -3036,6 +3130,7 @@
                     showPowerUp(`玩家 ${defender} 防守成功`);
                     renderBoard();
                     updateUI();
+                    await promptReturnTablet(attacker);
                     return;
                 }
             }
@@ -3055,6 +3150,11 @@
             }
 
             updateUI();
+
+            // 攻防結束後，若剛才有換手交給防守方操作，提示把平板還給進攻方
+            if (defenderHadTablet) {
+                await promptReturnTablet(attacker);
+            }
         }
 
         // 更新UI
