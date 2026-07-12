@@ -280,6 +280,78 @@
             }
         }
 
+        /* 土地攻防：蓋在某一格上的短暫特效（盾牌防守成功 / 劍插上去搶佔） */
+        .cell-effect {
+            position: fixed;
+            z-index: 2500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .cell-effect .fx {
+            line-height: 1;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+        }
+
+        .cell-effect.shield .fx {
+            animation: shieldEffect 1.2s ease-out forwards;
+        }
+
+        .cell-effect.sword .fx {
+            animation: swordStab 1s ease-out forwards;
+        }
+
+        @keyframes shieldEffect {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            25% {
+                transform: scale(1.25);
+                opacity: 1;
+            }
+
+            70% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.1);
+                opacity: 0;
+            }
+        }
+
+        @keyframes swordStab {
+            0% {
+                transform: translateY(-120%) rotate(6deg) scale(0.85);
+                opacity: 0;
+            }
+
+            30% {
+                transform: translateY(0) rotate(0deg) scale(1.3);
+                opacity: 1;
+            }
+
+            45% {
+                transform: translateY(-14%) rotate(0deg) scale(1.1);
+                opacity: 1;
+            }
+
+            65% {
+                transform: translateY(0) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(0) rotate(0deg) scale(1);
+                opacity: 0;
+            }
+        }
+
         .card-face {
             position: absolute;
             width: 100%;
@@ -1269,7 +1341,7 @@
             <div class="word-topic-current" id="currentTopicLabel">目前：原始預設</div>
             <button class="control-btn" onclick="confirmNewGame()">🎲 新遊戲</button>
             <button class="control-btn" onclick="showHelp()">❓ 說明</button>
-            <button class="control-btn" onclick="showPinReveal()">🔒 查看密碼</button>
+            <button class="control-btn" id="pinRevealBtn" onclick="showPinReveal()">🔒 查看密碼</button>
         </div>
 
         <div class="player-section player2" id="player2Section">
@@ -2378,6 +2450,28 @@
             });
         }
 
+        // 在指定的一格上疊一個短暫特效（emoji），播完自動移除
+        function showCellEffect(index, emoji, variant, duration = 1200) {
+            const cardEl = document.querySelector(`.card[data-index="${index}"]`);
+            if (!cardEl) return;
+            const rect = cardEl.getBoundingClientRect();
+            const fx = document.createElement('div');
+            fx.className = `cell-effect ${variant}`;
+            fx.style.left = `${rect.left}px`;
+            fx.style.top = `${rect.top}px`;
+            fx.style.width = `${rect.width}px`;
+            fx.style.height = `${rect.height}px`;
+
+            const inner = document.createElement('span');
+            inner.className = 'fx';
+            inner.textContent = emoji;
+            inner.style.fontSize = `${Math.round(rect.width * 0.5)}px`;
+            fx.appendChild(inner);
+
+            document.body.appendChild(fx);
+            setTimeout(() => fx.remove(), duration);
+        }
+
         function getWordVisual(wordData) {
             if (wordData.image) {
                 return `<img src="${wordData.image}" alt="${wordData.chinese || wordData.word}">`;
@@ -3129,6 +3223,7 @@
                     gameState.gameActive = true;
                     showPowerUp(`玩家 ${defender} 防守成功`);
                     renderBoard();
+                    showCellEffect(index, '🛡️', 'shield', 1200);
                     updateUI();
                     await promptReturnTablet(attacker);
                     return;
@@ -3141,6 +3236,7 @@
             gameState.gameActive = true;
             showPowerUp(`玩家 ${attacker} 搶佔成功`);
             renderBoard();
+            showCellEffect(index, '🗡️', 'sword', 1000);
 
             if (stolenType && stolenType !== 'attack') {
                 setTimeout(() => {
@@ -3170,6 +3266,8 @@
             document.getElementById('player2Territory').style.display = isTerritoryMode ? 'block' : 'none';
             document.getElementById('player1Powers').style.display = isTerritoryMode ? 'block' : 'none';
             document.getElementById('player2Powers').style.display = isTerritoryMode ? 'block' : 'none';
+            const pinRevealBtn = document.getElementById('pinRevealBtn');
+            if (pinRevealBtn) pinRevealBtn.style.display = isTerritoryMode ? '' : 'none';
             document.getElementById('territoryPanel').classList.toggle('active', isTerritoryMode);
             document.getElementById('classicModeBtn').classList.toggle('active', gameState.mode === 'classic');
             document.getElementById('territoryModeBtn').classList.toggle('active', isTerritoryMode);
