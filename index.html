@@ -1111,6 +1111,10 @@
             align-items: center;
         }
 
+        #pinRevealModal {
+            z-index: 2100;
+        }
+
         .confirm-icon {
             font-size: 3.5em;
             margin-bottom: 10px;
@@ -1341,7 +1345,6 @@
             <div class="word-topic-current" id="currentTopicLabel">目前：原始預設</div>
             <button class="control-btn" onclick="confirmNewGame()">🎲 新遊戲</button>
             <button class="control-btn" onclick="showHelp()">❓ 說明</button>
-            <button class="control-btn" id="pinRevealBtn" onclick="showPinReveal()">🔒 查看密碼</button>
         </div>
 
         <div class="player-section player2" id="player2Section">
@@ -1519,6 +1522,7 @@
                 <div class="confirm-pin-error" id="confirmPinError"></div>
             </div>
             <div class="confirm-actions">
+                <button class="confirm-btn confirm-btn-cancel" id="confirmPinRevealBtn" onclick="showPinReveal()" style="display:none">🔒 查看密碼</button>
                 <button class="confirm-btn confirm-btn-cancel" id="confirmCancelBtn">取消</button>
                 <button class="confirm-btn confirm-btn-ok" id="confirmOkBtn">確定</button>
             </div>
@@ -2910,12 +2914,14 @@
             variant = '',
             pinPlayer = null,
             pinMessage = '',
-            hideCancel = false
+            hideCancel = false,
+            allowPinReveal = false
         } = {}) {
             const modal = document.getElementById('confirmModal');
             const content = modal.querySelector('.confirm-content');
             const okButton = document.getElementById('confirmOkBtn');
             const cancelButton = document.getElementById('confirmCancelBtn');
+            const pinRevealButton = document.getElementById('confirmPinRevealBtn');
             const alert = document.getElementById('confirmAlert');
             const pinLock = document.getElementById('confirmPinLock');
             const pinLabel = document.getElementById('confirmPinLabel');
@@ -2937,6 +2943,7 @@
             okButton.textContent = okText;
             cancelButton.textContent = cancelText;
             cancelButton.style.display = hideCancel ? 'none' : '';
+            pinRevealButton.style.display = allowPinReveal ? '' : 'none';
             okButton.disabled = requiresPin;
             cancelButton.disabled = requiresPin;
             pinLock.classList.toggle('active', requiresPin);
@@ -2977,6 +2984,7 @@
                     okButton.disabled = false;
                     cancelButton.disabled = false;
                     cancelButton.style.display = '';
+                    pinRevealButton.style.display = 'none';
                     okButton.onclick = null;
                     cancelButton.onclick = null;
                     pendingConfirmResolver = null;
@@ -3212,7 +3220,8 @@
                     cancelText: '不防守',
                     variant: 'defense',
                     pinPlayer: defender,
-                    pinMessage: `請玩家 ${defender} 輸入自己的 4 位數密碼`
+                    pinMessage: `請玩家 ${defender} 輸入自己的 4 位數密碼`,
+                    allowPinReveal: true
                 });
                 if (!gameState.attackSelection || gameState.attackSelection.attacker !== attacker) return;
                 gameState.attackSelection.confirming = false;
@@ -3266,8 +3275,6 @@
             document.getElementById('player2Territory').style.display = isTerritoryMode ? 'block' : 'none';
             document.getElementById('player1Powers').style.display = isTerritoryMode ? 'block' : 'none';
             document.getElementById('player2Powers').style.display = isTerritoryMode ? 'block' : 'none';
-            const pinRevealBtn = document.getElementById('pinRevealBtn');
-            if (pinRevealBtn) pinRevealBtn.style.display = isTerritoryMode ? '' : 'none';
             document.getElementById('territoryPanel').classList.toggle('active', isTerritoryMode);
             document.getElementById('classicModeBtn').classList.toggle('active', gameState.mode === 'classic');
             document.getElementById('territoryModeBtn').classList.toggle('active', isTerritoryMode);
