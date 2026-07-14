@@ -1389,7 +1389,7 @@
                 <p>土地競爭：配對成功會佔領土地，土地數是主要勝負條件；也會依卡片類型獲得功能卡，分數可用來購買功能卡。</p>
                 <p><strong>土地競爭開局雙方各有 1 張防守卡；每回合最多購買一張功能卡，最多主動使用一張功能卡；防守卡被動使用，不算主動使用。</strong></p>
                 <p>加分卡不能購買，只能透過土地畫面翻到取得；使用後可加 10 分。隨機卡抽到加分會直接加 10 分。</p>
-                <p>提示卡可以翻到也可以花 30 分購買；使用後會提示已經看過、目前未佔領的可配對組合，若沒有可提示組合則不消耗卡。</p>
+                <p>提示卡可以翻到也可以花 40 分購買；使用後會提示已經看過、目前未佔領的可配對組合，若沒有可提示組合則不消耗卡。</p>
                 <p>攻擊成功時只能搶一塊對方土地；若對方沒有防守，會獲得該土地對應的一張功能卡，但攻下攻擊類土地不會再獲得攻擊卡。</p>
                 <p>重組卡會在使用者本回合翻牌結束後，把剩下還沒打開、還沒佔領的牌重新洗牌。</p>
                 <br>
@@ -2051,7 +2051,7 @@
                 label: '提示',
                 cardLabel: 'Hint',
                 shopLabel: '提示',
-                cost: 30,
+                cost: 40,
                 className: 'category-hint'
             }
         };
@@ -3223,9 +3223,9 @@
                     gameState.gameActive = true;
                     showPowerUp(`玩家 ${defender} 防守成功`);
                     renderBoard();
-                    showCellEffect(index, '🛡️', 'shield', 1200);
                     updateUI();
                     await promptReturnTablet(attacker);
+                    showCellEffect(index, '🛡️', 'shield', 1200);
                     return;
                 }
             }
@@ -3236,7 +3236,6 @@
             gameState.gameActive = true;
             showPowerUp(`玩家 ${attacker} 搶佔成功`);
             renderBoard();
-            showCellEffect(index, '🗡️', 'sword', 1000);
 
             if (stolenType && stolenType !== 'attack') {
                 setTimeout(() => {
@@ -3251,6 +3250,7 @@
             if (defenderHadTablet) {
                 await promptReturnTablet(attacker);
             }
+            showCellEffect(index, '🗡️', 'sword', 1000);
         }
 
         // 更新UI
