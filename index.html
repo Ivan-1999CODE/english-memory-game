@@ -1270,6 +1270,12 @@
             flex-wrap: wrap;
         }
 
+        .confirm-pin-reveal-action {
+            flex-basis: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
         .confirm-btn {
             border: none;
             padding: 12px 24px;
@@ -1522,9 +1528,11 @@
                 <div class="confirm-pin-error" id="confirmPinError"></div>
             </div>
             <div class="confirm-actions">
-                <button class="confirm-btn confirm-btn-cancel" id="confirmPinRevealBtn" onclick="showPinReveal()" style="display:none">🔒 查看密碼</button>
                 <button class="confirm-btn confirm-btn-cancel" id="confirmCancelBtn">取消</button>
                 <button class="confirm-btn confirm-btn-ok" id="confirmOkBtn">確定</button>
+                <div class="confirm-pin-reveal-action" id="confirmPinRevealAction" style="display:none">
+                    <button class="confirm-btn confirm-btn-cancel" id="confirmPinRevealBtn" onclick="showPinReveal()">🔒 查看密碼</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2921,7 +2929,7 @@
             const content = modal.querySelector('.confirm-content');
             const okButton = document.getElementById('confirmOkBtn');
             const cancelButton = document.getElementById('confirmCancelBtn');
-            const pinRevealButton = document.getElementById('confirmPinRevealBtn');
+            const pinRevealAction = document.getElementById('confirmPinRevealAction');
             const alert = document.getElementById('confirmAlert');
             const pinLock = document.getElementById('confirmPinLock');
             const pinLabel = document.getElementById('confirmPinLabel');
@@ -2943,7 +2951,7 @@
             okButton.textContent = okText;
             cancelButton.textContent = cancelText;
             cancelButton.style.display = hideCancel ? 'none' : '';
-            pinRevealButton.style.display = allowPinReveal ? '' : 'none';
+            pinRevealAction.style.display = allowPinReveal ? 'flex' : 'none';
             okButton.disabled = requiresPin;
             cancelButton.disabled = requiresPin;
             pinLock.classList.toggle('active', requiresPin);
@@ -2984,7 +2992,7 @@
                     okButton.disabled = false;
                     cancelButton.disabled = false;
                     cancelButton.style.display = '';
-                    pinRevealButton.style.display = 'none';
+                    pinRevealAction.style.display = 'none';
                     okButton.onclick = null;
                     cancelButton.onclick = null;
                     pendingConfirmResolver = null;
