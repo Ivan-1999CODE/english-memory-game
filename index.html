@@ -3459,7 +3459,16 @@
             const container = document.getElementById('wordBankList');
             if (!container) return;
 
-            container.innerHTML = wordTopics.map(bank => `
+            const checkedIds = Array.from(document.querySelectorAll('#wordTopicChoices input:checked'))
+                .map(input => input.value);
+            const visibleTopics = wordTopics.filter(topic => checkedIds.includes(topic.id));
+
+            if (!visibleTopics.length) {
+                container.innerHTML = '<p class="word-bank-summary">請先在上方勾選要使用的單字主題。</p>';
+                return;
+            }
+
+            container.innerHTML = visibleTopics.map(bank => `
                 <section class="word-bank-section">
                     <h3>${bank.name}（${bank.words.length} 個）</h3>
                     <p class="word-bank-summary">${bank.description}</p>
@@ -3491,6 +3500,7 @@
                     </span>
                 </label>
             `).join('');
+            container.onchange = renderWordBank;
         }
 
         function showWordBank() {
