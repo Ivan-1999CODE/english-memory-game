@@ -186,6 +186,47 @@
             border-color: white;
         }
 
+        .word-bank-trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 48px;
+            padding: 11px 20px;
+            background: linear-gradient(135deg, #ffd84d, #ff9f1c);
+            color: #3d2100;
+            border: 3px solid #fff;
+            box-shadow: 0 5px 0 #c65f00, 0 7px 16px rgba(128, 59, 0, 0.32);
+            font-size: 1.08em;
+        }
+
+        .word-bank-trigger svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .word-bank-trigger:hover {
+            background: linear-gradient(135deg, #ffe777, #ffb13b);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #c65f00, 0 10px 20px rgba(128, 59, 0, 0.36);
+        }
+
+        .word-bank-trigger:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #c65f00, 0 4px 10px rgba(128, 59, 0, 0.28);
+        }
+
+        .word-bank-trigger:focus-visible,
+        .word-bank-card:focus-visible {
+            outline: 4px solid #1d4ed8;
+            outline-offset: 3px;
+        }
+
         /* 調整玩家區塊的順序，使其在控制按鈕之後 */
         .player-section.player1 {
             order: 2;
@@ -993,13 +1034,42 @@
 
         .word-bank-card {
             display: grid;
-            grid-template-columns: 42px minmax(0, 1fr);
+            grid-template-columns: 42px minmax(0, 1fr) 24px;
             gap: 8px;
             align-items: center;
             background: #f8f9fb;
-            border: 1px solid #ddd;
+            color: inherit;
+            border: 2px solid #d8dce5;
             border-radius: 8px;
             padding: 8px;
+            min-height: 64px;
+            width: 100%;
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, transform 0.2s;
+        }
+
+        .word-bank-card:hover {
+            background: #eef4ff;
+            border-color: #4f72d8;
+            box-shadow: 0 4px 12px rgba(42, 70, 150, 0.18);
+        }
+
+        .word-bank-card:active {
+            transform: scale(0.98);
+            background: #dfeaff;
+        }
+
+        .word-bank-speaker {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: #3659bd;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         .word-bank-visual {
@@ -1016,12 +1086,14 @@
         }
 
         .word-bank-word {
+            display: block;
             font-weight: bold;
             color: #222;
             overflow-wrap: anywhere;
         }
 
         .word-bank-chinese {
+            display: block;
             color: #555;
             font-size: 0.92em;
         }
@@ -1346,7 +1418,10 @@
             <div class="mode-toggle">
                 <button class="mode-btn active" id="classicModeBtn" onclick="setMode('classic')">經典模式</button>
                 <button class="mode-btn" id="territoryModeBtn" onclick="setMode('territory')">土地競爭</button>
-                <button class="mode-btn" onclick="showWordBank()">更換單字</button>
+                <button class="mode-btn word-bank-trigger" type="button" onclick="showWordBank()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3H4z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v18a3 3 0 0 1 3-3h3z"/></svg>
+                    選擇單字
+                </button>
             </div>
             <div class="word-topic-current" id="currentTopicLabel">目前：原始預設</div>
             <button class="control-btn" onclick="confirmNewGame()">🎲 新遊戲</button>
@@ -1422,7 +1497,7 @@
             <div class="trophy">📚</div>
             <div class="winner-announcement" style="font-size: 2.5em; margin-bottom: 14px;">題庫</div>
             <div class="word-bank-summary">
-                勾選一個或多個主題後，每局會從所選主題抽 30 組單字，再隨機分成 6 種功能卡，各 5 組。
+                勾選一個或多個主題後，每局會從所選主題抽 30 組單字，再隨機分成 6 種功能卡，各 5 組。點下面任何單字都可以聽發音。
             </div>
             <div class="word-topic-choices" id="wordTopicChoices"></div>
             <div class="confirm-actions" style="margin-bottom: 20px;">
@@ -3469,14 +3544,20 @@
         // 文字轉語音
         function speakWord(text) {
             if ('speechSynthesis' in window && gameState.soundEnabled) {
-                // 取消之前的語音
-                speechSynthesis.cancel();
+                // Safari 在 cancel() 後立刻 speak() 可能吞音，只在確實有語音時才取消
+                if (speechSynthesis.speaking || speechSynthesis.pending) {
+                    speechSynthesis.cancel();
+                }
 
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'en-US';
                 utterance.rate = 0.9;
                 utterance.pitch = 1.1;
                 utterance.volume = 1;
+                const voices = speechSynthesis.getVoices();
+                const englishVoice = voices.find(voice => voice.lang === 'en-US') ||
+                    voices.find(voice => voice.lang && voice.lang.toLowerCase().startsWith('en'));
+                if (englishVoice) utterance.voice = englishVoice;
                 speechSynthesis.speak(utterance);
             }
         }
@@ -3504,23 +3585,32 @@
                 return;
             }
 
-            container.innerHTML = visibleTopics.map(bank => `
+            container.innerHTML = visibleTopics.map((bank, topicIndex) => `
                 <section class="word-bank-section">
                     <h3>${bank.name}（${bank.words.length} 個）</h3>
                     <p class="word-bank-summary">${bank.description}</p>
                     <div class="word-bank-grid">
-                        ${bank.words.map(item => `
-                            <div class="word-bank-card">
-                                <div class="word-bank-visual">${getWordVisual(item)}</div>
-                                <div>
-                                    <div class="word-bank-word">${item.word}</div>
-                                    <div class="word-bank-chinese">${item.chinese}</div>
-                                </div>
-                            </div>
+                        ${bank.words.map((item, wordIndex) => `
+                            <button class="word-bank-card" type="button" data-topic-index="${topicIndex}" data-word-index="${wordIndex}" aria-label="播放 ${item.word} 的英文發音">
+                                <span class="word-bank-visual">${getWordVisual(item)}</span>
+                                <span>
+                                    <span class="word-bank-word">${item.word}</span>
+                                    <span class="word-bank-chinese">${item.chinese}</span>
+                                </span>
+                                <svg class="word-bank-speaker" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/><path d="M18 6a8 8 0 0 1 0 12"/></svg>
+                            </button>
                         `).join('')}
                     </div>
                 </section>
             `).join('');
+
+            container.querySelectorAll('.word-bank-card').forEach(button => {
+                button.addEventListener('click', () => {
+                    const topic = visibleTopics[Number(button.dataset.topicIndex)];
+                    const item = topic && topic.words[Number(button.dataset.wordIndex)];
+                    if (item) speakWord(item.word);
+                });
+            });
         }
 
         function renderWordTopicChoices() {
