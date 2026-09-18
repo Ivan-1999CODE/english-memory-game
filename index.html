@@ -970,7 +970,36 @@
         }
 
         .word-bank-content {
+            position: relative;
             max-width: 900px;
+        }
+
+        .word-bank-close {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: #f3f4f6;
+            color: #333;
+            font-size: 30px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .word-bank-close:hover {
+            background: #e5e7eb;
+        }
+
+        .word-bank-close:focus-visible {
+            outline: 3px solid #2563eb;
+            outline-offset: 3px;
         }
 
         .word-bank-summary {
@@ -1494,6 +1523,7 @@
     <!-- 題庫 Modal -->
     <div class="game-over-modal" id="wordBankModal">
         <div class="game-over-content word-bank-content">
+            <button class="word-bank-close" type="button" onclick="closeWordBank()" aria-label="關閉選擇單字，返回遊戲" title="返回遊戲">&times;</button>
             <div class="trophy">📚</div>
             <div class="winner-announcement" style="font-size: 2.5em; margin-bottom: 14px;">題庫</div>
             <div class="word-bank-summary">
@@ -1962,7 +1992,7 @@
                     { word: "sunrise", emoji: "🌅", chinese: "日出" },
                     { word: "sunset", emoji: "🌇", chinese: "日落" },
                     { word: "hot", emoji: "🥵", chinese: "炎熱的" },
-                    { word: "mars", emoji: "🔴", chinese: "火星" },
+                    { word: "planet", emoji: "🪐", chinese: "星球" },
                     { word: "storm", emoji: "🌩️", chinese: "暴風雨" },
                     { word: "ice", emoji: "🧊", chinese: "冰塊" },
                     { word: "rainy day", emoji: "☔", chinese: "下雨天" },
